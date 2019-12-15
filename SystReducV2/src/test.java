@@ -38,16 +38,16 @@ public class test {
 		nbDuSysReduc.add(12);
 		nbDuSysReduc.add(14);
 		//20
-//		nbDuSysReduc.add(4);
-//		nbDuSysReduc.add(36);
-//		nbDuSysReduc.add(11);
-//		nbDuSysReduc.add(41);
-//		nbDuSysReduc.add(19);
-//		nbDuSysReduc.add(13);
-//		nbDuSysReduc.add(27);
-//		nbDuSysReduc.add(42);
-//		nbDuSysReduc.add(5);
-//		nbDuSysReduc.add(25);
+		nbDuSysReduc.add(4);
+		nbDuSysReduc.add(36);
+		nbDuSysReduc.add(11);
+		nbDuSysReduc.add(41);
+		nbDuSysReduc.add(19);
+		nbDuSysReduc.add(13);
+		nbDuSysReduc.add(27);
+		nbDuSysReduc.add(42);
+		nbDuSysReduc.add(5);
+		nbDuSysReduc.add(25);
 		//30
 		
 		Collections.sort(nbDuSysReduc);

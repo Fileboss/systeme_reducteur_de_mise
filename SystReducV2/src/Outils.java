@@ -1,5 +1,6 @@
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Outils {
@@ -34,5 +35,30 @@ public class Outils {
 			g.remplacer(systemeReduc);
 		}
 
+	}
+	
+	public static List<Grille> genererCouverture(int tailleSysReduc, int nbGarantis) {
+		List<Grille> bonnesGrilles = new ArrayList<>();
+		List<Grille> ensemble = Grille.enumererGrilles(tailleSysReduc);
+		
+		Collections.shuffle(ensemble);
+		//int taille = ensemble.size();
+		while(ensemble.size() > 0) {
+			int i = 0;
+			Grille gTemp = ensemble.get(0);
+			ensemble.remove(0);
+//			float pct = 100.0F - ((float) ensemble.size() / taille)*100;
+//			System.out.println(pct + " ");	
+			bonnesGrilles.add(gTemp);
+			while (i < ensemble.size()) {
+				if (gTemp.nbNombresEnCommun(ensemble.get(i)) >= nbGarantis) {
+					ensemble.remove(i);
+				} else {
+					i++;
+				}
+			}
+		}
+		Collections.sort(bonnesGrilles);
+		return bonnesGrilles;
 	}
 }

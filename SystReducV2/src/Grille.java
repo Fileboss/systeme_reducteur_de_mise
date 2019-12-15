@@ -3,8 +3,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Grille implements Comparable<Grille> {
+public class Grille implements Comparable<Grille>{
 
+
+	
 	private List<Integer> nombres;
 
 	public Grille(int a, int b, int c, int d, int e) {
@@ -19,32 +21,41 @@ public class Grille implements Comparable<Grille> {
 		Collections.sort(this.nombres);
 	}
 
-	public Grille(List<Integer> nombresAjout) {
-		for (int e : nombresAjout) {
-			this.nombres.add(e);
-		}
-		if (nombresAjout.size() < 5) {
-			for (int i = 1; i <= 5 - nombresAjout.size(); i++) {
-				this.nombres.add(i);
-			}
-		}
-	}
+//	public Grille(List<Integer> nombresAjout) {
+//		for (int e : nombresAjout) {
+//			this.nombres.add(e);
+//		}
+//		if (nombresAjout.size() < 5) {
+//			for (int i = 1; i <= 5 - nombresAjout.size(); i++) {
+//				this.nombres.add(i);
+//			}
+//		}
+//	}
 
+	public Grille(String s) {
+		this.nombres = new ArrayList<>();
+		this.nombres.add(Integer.valueOf(s.substring(0, 2)));
+		this.nombres.add(Integer.valueOf(s.substring(3, 5)));
+		this.nombres.add(Integer.valueOf(s.substring(6, 8)));
+		this.nombres.add(Integer.valueOf(s.substring(9, 11)));
+		this.nombres.add(Integer.valueOf(s.substring(12, 14)));
+	}
+	
 	public List<Integer> getNombres() {
 		return this.nombres;
 	}
 
 	@Override
 	public String toString() {
-		String res = "[";
+		String res = "";
 		for (int i = 0; i < this.nombres.size() - 1; i++) {
 			if (this.nombres.get(i) < 10)
 				res += "0";
-			res += this.nombres.get(i) + ", ";
+			res += this.nombres.get(i) + ",";
 		}
 		if (this.nombres.get(this.nombres.size() - 1) < 10)
 			res += "0";
-		res += this.nombres.get(this.nombres.size() - 1) + "]";
+		res += this.nombres.get(this.nombres.size() - 1) + "";
 		return res;
 	}
 
