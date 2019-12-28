@@ -7,44 +7,44 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Menu {
 
+    static DecimalFormat df = new DecimalFormat();
 
     public static void main(String[] args) throws IOException {
     	final float PRIXGRILLE = 2.5F;
+        df.setMaximumFractionDigits(2);
         Scanner entree = new Scanner(System.in);
         String choix;
         //message de mise en garde et demande +18
         Menu.clear();
-        System.out.println("/!\\ Attention /!\\");
-        System.out.println(" ");
-        System.out.println("Jouer comporte des risques : isolement, endettement...");
-        System.out.println("Appelez le 09-74-75-13-13 (appel non surtaxé).");
-        System.out.println(" ");
-        System.out.println("Les jeux d'argents sont interdits aux mineurs,");
-        System.out.println("en continuant vous confirmez avoir plus de 18 ans.");
-        System.out.println(" ");
-        System.out.println("Confirmez vous avoir plus de 18 ans ? (oui/non)");
+        Menu.avertissementMenu();
 
         choix = entree.nextLine();
+        //On quite le programme si le message n'est pas accepté
         if(!choix.equalsIgnoreCase("oui") && !choix.equalsIgnoreCase("o")) {
             System.exit(0);
         }
 
         /// VARIABLES "GLOBALES"
         final int NB_NB_JOUABLES = 50; // pour generer une array de 1 a 50
+        float margeMise = 1.15F;
         int nbGarantis = 2; //garantie que veut l'utilisateur
         float miseMax = 0; //mise max de l'utilisteur
         List<Integer> reducteurNombres = new ArrayList<>(); // nombres que l'utilisateur veut jouer
-        List<Integer> nombresDispo = new ArrayList<>(NB_NB_JOUABLES); // nombres que l'utilisateur peut jouer et ajouter a sa liste ci-dessus
+        List<Integer> list50 = new ArrayList<>(NB_NB_JOUABLES); // nombres que l'utilisateur peut jouer et ajouter a sa liste ci-dessus
 
         //generation des 50 nombres dispos
         for(int i = 1; i <= NB_NB_JOUABLES; i++) {
-            nombresDispo.add(i);
+            list50.add(i);
         }
+
+        List<Integer> nombresDispo = new ArrayList<>(list50);
+
         //System.out.println(nombresDispo);
 
         //boucle principale
@@ -172,6 +172,34 @@ public class Menu {
                                 choix = "";
                                 confirm = null;
                                 break;
+
+                            case "3":
+                                do {
+                                    //Menu tout supp
+                                    Menu.clear();
+                                    System.out.println(" ");
+                                    System.out.println(">> Voulez vous vraiment supprimer tout les nombres ? (o/n)");
+                                    System.out.println(" ");
+                                    choix = entree.nextLine();
+                                    System.out.println(" ");
+
+                                    if(choix.equalsIgnoreCase("o") || choix.equalsIgnoreCase("oui")) {
+                                        reducteurNombres = new ArrayList<>();
+                                        nombresDispo = new ArrayList<>(list50);
+                                        System.out.println("Nombre(s) supprimé(s)");
+                                    } else {
+                                        System.out.println("Nombre(s) non supprimé(s)");
+                                    }
+                                    System.out.println(" ");
+                                    System.out.println(">> Appuyez sur n'importe quelle touche pour revenir au menu précédent");
+                                    choix = entree.nextLine();
+                                    choix = "0";
+
+
+                                } while(!choix.equals("0"));
+                                choix = "";
+                                confirm = null;
+                                break;
                         }
 
                     } while(!choix.equals("0"));
@@ -221,99 +249,153 @@ public class Menu {
                     break;
 
                 case "4":
+                    confirm = null;
                     do {
+                        //menu marge mise
+                        Menu.miseMargeMaxMenu((margeMise-1.0F)*100.0F);
+                        if(confirm != null) if(confirm) System.out.println("|| # Marge mise modifiée"); else System.out.println("|| /!\\ Nombre invalide");
+                        System.out.println(" ");
+                        System.out.println(">> Saisir la marge en pourcent(%) (ou 0 pour quitter) :");
+                        choix = entree.nextLine();
+                        if(!choix.equals("0")) {
+                            float nb;
+                            try {
+                                nb = Float.valueOf(choix);
+                                if(confirm = (nb >= 1.0f && nb <= 99999.0f)) margeMise = (nb/100.0F)+1.0F;
+                            } catch (Exception e) {
+                                confirm = false;
+                            }
+                        }
+
+                    } while(!choix.equals("0"));
+                    break;
+
+                case "5":
+                    do {
+                        //suggestion parametres
+                        Menu.suggestionParamsMenu(margeMise, miseMax);
+                        System.out.println(">> Saisir une action :");
+                        choix = entree.nextLine();
+                        
+                    } while(!choix.equals("0"));
+                    break;
+
+                case "9":
+                    do {
+                    	//Menu de génération des grilles
                         Menu.clear();
+                        //Vérification que l'utilisateur a saisie un système réducteur assez grand
                         if(reducteurNombres.size() < 11) {
                             System.out.println("=================================");
                             System.out.println("/!\\ Impossible de générer les grilles, vous n'avez pas saisi assez de nombres.");
                             System.out.println("=================================");
-                        }
-                        // ici on "genere" les grilles donc je sais pas, tu lui ouvre le bon fichier texte ou ce que tu veux
-                        // attention n'oublie pas de changer la condition en dessous ou alors de refaire une demande de choix à l'utilisateur
-                        // (en mode olala on a genere tes grilles si tu veux revenir au menu appuie sur 0)
-                        // en plus faire un menu c'est pas dur inspire toi du bordel bof bof que j'ai pondu, mais sinon ça marche du tonair
-                        // euh d'ailleurs tu voudras surement mettre une condition en mode tu peux pas rentrer là si t'as pas choisis au moins 7 nombres ou je sais pas
-                        // je l'ai commencé perso voila
-                        final int TAILLESYSREDUC = reducteurNombres.size();
-                		final int GARANTIS = nbGarantis;
-                		
-                		//Code permettant de récupérer le chemin du bon fhichier
-                		String nFicLoad = "Ressources/data_";
-                		nFicLoad+=TAILLESYSREDUC+"_"+GARANTIS+".txt";
-                		Path path = Paths.get(nFicLoad);
-                		BufferedReader monFic = null;;
-                		try {
-                			monFic = Files.newBufferedReader(path, Charset.forName("UTF-8"));
-                		} catch (IOException e) {
-                			e.printStackTrace();
-                		}
-                		
-                		// code permettant de transformer les infos du fichier en objets de type grille :
-                		List<Grille> grillesRecuperees = new ArrayList<>();
-                		String ligne = "";
-                		try {
-                			ligne = monFic.readLine();
-                		} catch (IOException e) {
-                			e.printStackTrace();
-                		}
-                		while (ligne != null) {
-                			grillesRecuperees.add(new Grille(ligne));
-                			try {
-                				ligne = monFic.readLine();
-                			} catch (IOException e) {
-                				e.printStackTrace();
-                			}
-                		}
-                		
-                		//Calcul du prix des grilles
-                		float prix = grillesRecuperees.size()*PRIXGRILLE;
-                		
-                		//La fadurait check par rapport à sa mise max
-                		
-                		//On fait la correspondance
-                		Outils.convertir(reducteurNombres, grillesRecuperees);
-                		
-                		//Trouver le chemin du fichier ou on va stoquer les résultats, le fichier est cree a partir de la date courante
-                		DateFormat format = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
-                		Date dateCourante = new Date();
-                		String nFic = "Resultats/";
-                		nFic+= format.format(dateCourante)+".txt";
-                		File f = new File(nFic);
-        				try {
-        					f.createNewFile();
-        				} catch (IOException e1) {
-        					e1.printStackTrace();
-        				}
-        				
-        				//Enregistrement des grilles
-        				List<String> strGrilles = new ArrayList<>();
-        				for (int i = 0; i < grillesRecuperees.size(); i++) {
-        					if (i > 0 && i%5 == 0) strGrilles.add("");
-        					strGrilles.add(grillesRecuperees.get(i).toString());
-        				}
-        				Path fichier = Paths.get(nFic);		
-        				try {
-        					Files.write(fichier, strGrilles, Charset.forName("UTF-8"), StandardOpenOption.APPEND);
-        				} catch (IOException e) {
-        					e.printStackTrace();
-        				}
-                		
-                		//Affichahe des grilles jouées
-                		//System.out.println( grillesRecuperees.size()+" grilles récupérées : \n"+grillesRecuperees);
-                		System.out.println("\n"+grillesRecuperees.size()+" grilles générées dans le fichier \""+nFic+"\" : \n"+grillesRecuperees);
-                		System.out.println("\n MONTANT A MISER :"+prix+"€\n");
+                            System.out.println(" ");
+                            System.out.println("\n0 >> Revenir au menu");
+	                        System.out.println(" ");
+	                        choix = entree.nextLine();
+                        } else {
                         
-                		//Possibilite de retour au menu principal
-                		System.out.println("\n0 >> Revenir au menu");
-                        System.out.println(" ");
-                        choix = entree.nextLine();
-                		
+	                        final int TAILLESYSREDUC = reducteurNombres.size();
+	                		final int GARANTIS = nbGarantis;
+	                		
+	                		//Code permettant de récupérer le chemin du bon fhichier
+	                		String nFicLoad = "Ressources/data_";
+	                		nFicLoad+=TAILLESYSREDUC+"_"+GARANTIS+".txt";
+	                		Path path = Paths.get(nFicLoad);
+	                		BufferedReader monFic = null;;
+	                		try {
+	                			monFic = Files.newBufferedReader(path, Charset.forName("UTF-8"));
+	                		} catch (IOException e) {
+	                			System.out.println("Erreur, fichier de données non trouvé");
+	                			e.printStackTrace();
+	                		}
+	                		
+	                		// code permettant de transformer les infos du fichier en objets de type grille :
+	                		List<Grille> grillesRecuperees = new ArrayList<>();
+	                		String ligne = "";
+	                		try {
+	                			ligne = monFic.readLine();
+	                		} catch (IOException e) {
+	                			e.printStackTrace();
+	                		}
+	                		while (ligne != null) {
+	                			grillesRecuperees.add(new Grille(ligne));
+	                			try {
+	                				ligne = monFic.readLine();
+	                			} catch (IOException e) {
+	                				e.printStackTrace();
+	                			}
+	                		}
+	                		
+	                		//Calcul du prix des grilles
+	                		float prix = grillesRecuperees.size()*PRIXGRILLE;
+	                		
+	                		choix = "oui";
+	                		//Vérification du respect de la mise maximum, avec une marge de 15%
+	                		if (prix > miseMax * margeMise) {
+	                			Menu.prixDepasseMiseMenu(prix, miseMax);
+	                	        choix = entree.nextLine();
+	                		}
+	                		
+	                		if (choix.toLowerCase().equals("oui")) {
+								//On fait la correspondance
+								Outils.convertir(reducteurNombres, grillesRecuperees);
+								//Trouver le chemin du fichier ou on va stoquer les résultats, le fichier est cree a partir de la date courante
+								DateFormat format = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
+								Date dateCourante = new Date();
+								//Vérification de la présence du dossier Resultats et création le cas échéant
+								Path folder = Paths.get("Resultats");
+								if (Files.notExists(folder)) {
+									File folde = new File("Resultats");
+								      boolean bool = folde.mkdir();
+								      if(bool){
+								         System.out.println("Répertoire créée");
+								      }else{
+								         System.out.println("Impossible de créer le répertorie");
+								      }
+								}
+								//Ecriture des grilles dans les fichiers de resultat
+								String nFic = "Resultats/";
+								nFic += format.format(dateCourante) + ".txt";
+								File f = new File(nFic);
+								try {
+									f.createNewFile();
+								} catch (IOException e1) {
+									e1.printStackTrace();
+								}
+								//Enregistrement des grilles
+								List<String> strGrilles = new ArrayList<>();
+								for (int i = 0; i < grillesRecuperees.size(); i++) {
+									if (i > 0 && i % 5 == 0)
+										strGrilles.add("");
+									strGrilles.add(grillesRecuperees.get(i).toString());
+								}
+								Path fichier = Paths.get(nFic);
+								try {
+									Files.write(fichier, strGrilles, Charset.forName("UTF-8"), StandardOpenOption.APPEND);
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+								//Affichahe des grilles jouées
+								//System.out.println( grillesRecuperees.size()+" grilles récupérées : \n"+grillesRecuperees);
+								Menu.clear();
+								System.out.println("\n" + grillesRecuperees.size() + " grilles générées dans le fichier \""
+										+ nFic + "\" : \n" + grillesRecuperees);
+								System.out.println("\n MONTANT A MISER :" + prix + "€\n");
+								//Possibilite de retour au menu principal
+		                		System.out.println("\n0 >> Revenir au menu");
+		                        System.out.println(" ");
+		                        choix = entree.nextLine();
+	                		} else if (choix.toLowerCase().equals("non")){
+	                			choix = "0";
+	                		} 
+                        }
                     } while(!choix.equals("0"));
                     break;
             }
 
             //on affiche le menu principal
-            Menu.accueilMenu(reducteurNombres.size(), nbGarantis, miseMax);
+            Menu.accueilMenu(reducteurNombres.size(), nbGarantis, miseMax, (margeMise-1.0F)*100.0F);
             System.out.println(">> Saisir une action :");
             choix = entree.nextLine();
 
@@ -322,13 +404,37 @@ public class Menu {
 
     }
 
+    /**
+     * Vide l'affichage console
+     */
     private static void clear() {
         //methode dégeux de clear
         for (int y = 0; y < 50; y++)
-           System.out.println("\n");
+           System.out.println("\n\n");
+    }
+    
+    /**
+     * Affichage de l'avertissement
+     */
+    private static void avertissementMenu() {
+        System.out.println("/!\\ Attention /!\\");
+        System.out.println(" ");
+        System.out.println("Jouer comporte des risques : isolement, endettement...");
+        System.out.println("Appelez le 09-74-75-13-13 (appel non surtaxé).");
+        System.out.println(" ");
+        System.out.println("Les jeux d'argents sont interdits aux mineurs,");
+        System.out.println("en continuant vous confirmez avoir plus de 18 ans.");
+        System.out.println(" ");
+        System.out.println("Confirmez vous avoir plus de 18 ans ? (oui/non)");
     }
 
-    private static void accueilMenu(int taillesys, int garanti, float mm) {
+    /**
+     * Affichage du menu d'accueil
+     * @param taillesys taille du systeme reducteur
+     * @param garanti nombre de nombres garantis
+     * @param mm Mise maximale
+     */
+    private static void accueilMenu(int taillesys, int garanti, float mm, float mm2) {
         Menu.clear();
         System.out.println("=================================");
         System.out.println("||        MENU PRINCIPAL       ||");
@@ -336,15 +442,22 @@ public class Menu {
         System.out.println("|| # " + taillesys + " nombre(s) choisi(s).");
         System.out.println("|| # " + garanti + " nombre(s) garanti(s).");
         System.out.println("|| # Mise maximale définie : " + mm);
+        System.out.println("|| # Marge mise définie : " + df.format(mm2) + "%");
         System.out.println("||");
         System.out.println("|| 1 >> Choix des nombres du systeme");
         System.out.println("|| 2 >> Choix garantie");
         System.out.println("|| 3 >> Choix mise max");
+        System.out.println("|| 4 >> Choix marge mise");
+        System.out.println("|| 5 >> Suggestion de paramètres selon mise");
         System.out.println("||");
-        System.out.println("|| 4 >> Générer les grilles");
+        System.out.println("|| 9 >> Générer les grilles");
         Menu.finMenu();
     }
 
+    /**
+     * Affichage du menu du choix des nombres du système réducteur
+     * @param r liste des nombres choisis
+     */
     private static void nombresSystemeMenu(List<Integer> r) {
         Menu.clear();
         System.out.println("=================================");
@@ -355,9 +468,14 @@ public class Menu {
         System.out.println("||");
         System.out.println("|| 1 >> Ajouter des nombres");
         System.out.println("|| 2 >> Supprimer des nombres");
+        System.out.println("|| 3 >> Supprimer TOUT les nombres");
         Menu.finMenu();
     }
 
+    /**
+     * Affichage du menu de supression de nombres
+     * @param r	liste des nombres choisis
+     */
     private static void ajouterNombresSystemeMenu(List<Integer> r) {
         Menu.clear();
         System.out.println("=================================");
@@ -369,6 +487,10 @@ public class Menu {
         System.out.println("||");
     }
 
+    /**
+     * Affichage du menu de supression de nombres
+     * @param r liste des nombres choisis
+     */
     private static void supprimNombresSystemeMenu(List<Integer> r) {
         Menu.clear();
         System.out.println("=================================");
@@ -379,6 +501,10 @@ public class Menu {
         System.out.println("||");
     }
 
+    /**
+     * Affichage du menu du choix du nombres de nombres garantis
+     * @param g nombre de nombres garantis
+     */
     private static void garantieMenu(int g) {
         Menu.clear();
         System.out.println("=================================");
@@ -389,6 +515,10 @@ public class Menu {
         System.out.println("||");
     }
 
+    /**
+     * Affichage du menu de mise maximum
+     * @param mm mise maximale
+     */
     private static void miseMaxMenu(float mm) {
         Menu.clear();
         System.out.println("=================================");
@@ -399,7 +529,24 @@ public class Menu {
         System.out.println("||");
     }
 
+    /**
+     * Affichage du menu de marge mise
+     * @param mm marge mise
+     */
+    private static void miseMargeMaxMenu(float mm) {
 
+        Menu.clear();
+        System.out.println("=================================");
+        System.out.println("||          Marge mise         ||");
+        System.out.println("=================================");
+        System.out.println("|| # Marge mise définie : " + df.format(mm) + "%");
+        System.out.println("|| # Marge doit être supérieure à 1%.");
+        System.out.println("||");
+    }
+
+    /**
+     * Affichage de la fin commune à plusieurs menus
+     */
     private static void finMenu() {
         System.out.println("||");
         System.out.println("|| 0 >> Quitter");
@@ -407,45 +554,41 @@ public class Menu {
         System.out.println(" ");
     }
 
+    /**
+     * Affichage du menu de suggestion de parametres
+     */
+    private static void suggestionParamsMenu(float coefTaux, float prix) {
+    	
+    	List<String> results = Outils.recupererParametres(coefTaux, prix);
 
-//    private static void modifNombres(Boolean confirm, List<String> splitted, String choix, List<Integer> reducteurNombres, List<Integer> nombresDispo, Scanner entree) {
-//        List<Integer> toModif = new ArrayList<>();
-//        confirm = null;
-//        splitted = new ArrayList(Arrays.asList(choix.split(" |,")));
-//        for(int i = 0; i < splitted.size(); i ++) {
-//            try {
-//                Integer olala = Integer.parseInt(splitted.get(i));
-//                if(reducteurNombres.indexOf(olala) == -1 && nombresDispo.indexOf(olala) != -1 && !toModif.contains(olala)) {
-//                    toModif.add(olala);
-//                } else {
-//                    confirm = false;
-//                }
-//                if(confirm == null) confirm = true;
-//            } catch (Exception e) {
-//                confirm = false;
-//            }
-//        }
-//
-//        Collections.sort(toModif);
-//        List<String> filtre = new ArrayList<>();
-//        for (Integer i : toModif) {
-//            filtre.add(String.valueOf(i));
-//        }
-//        splitted.removeAll(filtre);
-//
-//        if(!confirm && toModif.size() > 0) {
-//            System.out.println("||");
-//            System.out.println("|| Ne peuvent pas être ajoute : "+ splitted + " Peuvent être ajoute : " + toModif);
-//            System.out.println("|| Voulez vous ajouter le(s) possible(s) ? (oui/non)");
-//            choix = entree.nextLine();
-//        }
-//        if(choix.equals("o") || choix.equals("oui") || confirm) {
-//            reducteurNombres.addAll(toModif);
-//            nombresDispo.removeAll(toModif);
-//            Collections.sort(reducteurNombres);
-//            confirm = true;
-//        }
-//    }
-
+        Menu.clear();
+        System.out.println("=================================");
+        System.out.println("||   Suggestion de paramètres  ||");
+        System.out.println("=================================");
+        if (results.size() > 0) {
+			for (int i = 0; i < results.size(); i++) {
+				System.out.println("||" + results.get(i));
+			} 
+		} else {
+			System.out.println("|| Aucun paramètre pour cette gamme de prix");
+		}
+		Menu.finMenu();
+    }
+    
+    private static void prixDepasseMiseMenu(float p, float mm) {
+        System.out.println("=================================");
+		System.out.println("||     /!\\ Attention /!\\     ||");
+        System.out.println("=================================");
+        System.out.println("||");
+        System.out.println("|| Avec les paramètres sélectionnés, la somme");
+        System.out.println("|| que vous devez miser dépasse de plus de 15%");
+        System.out.println("|| la mise maximale que vous aviez indiqué.");
+        System.out.println("|| Souhaitez vous continuer ?");
+        System.out.println("|| Prix extimé : "+p+"€");
+        System.out.println("|| Mise maximale saisie : "+mm+"€");
+        System.out.println("|| ");
+        System.out.println("|| oui : continuer");
+        System.out.println("|| non : retour au menu");
+    }
 
 }

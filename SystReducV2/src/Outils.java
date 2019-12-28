@@ -1,4 +1,10 @@
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -12,21 +18,6 @@ public class Outils {
 			float pct = ((float) aTester.indexOf(g) / (float) aTester.size() * 100);
 			System.out.println(pct);
 		}
-	}
-
-	public static void optimiserPasOuf(List<Grille> bonnesGrilles, List<Grille> ensemble, int garantie) {
-
-		List<Grille> bonnesGrillesSave = new ArrayList<>(bonnesGrilles);
-
-		for (Grille g : bonnesGrillesSave) {
-			TableauBooleen tabBool = new TableauBooleen(ensemble.size());
-			bonnesGrilles.remove(g);
-			Outils.testerPLusieursGrilles(ensemble, bonnesGrilles, tabBool, garantie);
-			if (!tabBool.estEntièrementVrai()) {
-				bonnesGrilles.add(g);
-			}
-		}
-
 	}
 
 	public static void convertir(List<Integer> systemeReduc, List<Grille> bonnesGrilles) {
@@ -47,8 +38,6 @@ public class Outils {
 			int i = 0;
 			Grille gTemp = ensemble.get(0);
 			ensemble.remove(0);
-//			float pct = 100.0F - ((float) ensemble.size() / taille)*100;
-//			System.out.println(pct + " ");	
 			bonnesGrilles.add(gTemp);
 			while (i < ensemble.size()) {
 				if (gTemp.nbNombresEnCommun(ensemble.get(i)) >= nbGarantis) {
@@ -60,6 +49,46 @@ public class Outils {
 		}
 		Collections.sort(bonnesGrilles);
 		return bonnesGrilles;
+	}
+	
+	public static List<String> recupererParametres(Float coefTaux, Float prix) {
+		List<String> recups = new ArrayList<>();
+		
+		float coefInv = 1 - (coefTaux-1);
+		
+		Path path = Paths.get("Ressources/prix.txt");
+		BufferedReader monFic = null;;
+		try {
+			monFic = Files.newBufferedReader(path, Charset.forName("UTF-8"));
+		} catch (IOException e) {
+			System.out.println("Impossible d'ouvrir le fichier de prix");
+			e.printStackTrace();
+		}
+		
+		String ligne = "";
+		try {
+			ligne = monFic.readLine();
+			if (Float.valueOf(ligne.substring(5)) < prix*coefTaux && Float.valueOf(ligne.substring(5)) > prix*coefInv) {
+				recups.add("Taille du système réducteur : "+ligne.substring(0, 2)+" Nombres garantis : "+ligne.charAt(3));
+			}
+		} catch (IOException e) {
+			System.out.println("Erreur de lecture du fichier prix");
+			e.printStackTrace();
+		}
+		
+		while (ligne != null) {
+			try {
+				if (Float.valueOf(ligne.substring(5)) < prix*coefTaux && Float.valueOf(ligne.substring(5)) > prix*coefInv) {
+					recups.add("Taille du système réducteur : "+ligne.substring(0, 2)+" Nombres garantis : "+ligne.charAt(3));
+				}
+				ligne = monFic.readLine();
+			} catch (IOException e) {
+				System.out.println("Erreur de lecture du fichier prix");
+				e.printStackTrace();
+			}
+		}
+		
+		return recups;
 	}
 }
 

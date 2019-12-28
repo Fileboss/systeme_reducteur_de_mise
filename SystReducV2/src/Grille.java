@@ -9,6 +9,14 @@ public class Grille implements Comparable<Grille>{
 	
 	private List<Integer> nombres;
 
+	/**
+	 * Constructeur de la classe Grille
+	 * @param a
+	 * @param b
+	 * @param c
+	 * @param d
+	 * @param e
+	 */
 	public Grille(int a, int b, int c, int d, int e) {
 		this.nombres = new ArrayList<>();
 
@@ -20,17 +28,6 @@ public class Grille implements Comparable<Grille>{
 
 		Collections.sort(this.nombres);
 	}
-
-//	public Grille(List<Integer> nombresAjout) {
-//		for (int e : nombresAjout) {
-//			this.nombres.add(e);
-//		}
-//		if (nombresAjout.size() < 5) {
-//			for (int i = 1; i <= 5 - nombresAjout.size(); i++) {
-//				this.nombres.add(i);
-//			}
-//		}
-//	}
 
 	public Grille(String s) {
 		this.nombres = new ArrayList<>();
@@ -76,18 +73,6 @@ public class Grille implements Comparable<Grille>{
 			}
 		}
 		return res;
-	}
-
-	public void testerAvecAjout(List<Grille> ensemble, TableauBooleen tabBool, int garantie,
-			List<Grille> bonnesGrilles) {
-		if (!tabBool.estEntièrementVrai()) {
-			bonnesGrilles.add(this);
-			for (int i = 0; i < ensemble.size(); i++) {
-				if (this.nbNombresEnCommun(ensemble.get(i)) >= garantie) {
-					tabBool.setVrai(i);
-				}
-			}
-		}
 	}
 
 	public void testerSansAjout(List<Grille> ensemble, TableauBooleen tabBool, int garantie) {
