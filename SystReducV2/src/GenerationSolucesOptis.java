@@ -31,7 +31,7 @@ public class GenerationSolucesOptis {
 		List<String> strPrix = new ArrayList<>();
 		
 		for (int garantis = 2; garantis < 5; garantis++) {
-			for (int tailleSysReduc = 11; tailleSysReduc < 30; tailleSysReduc++) {
+			for (int tailleSysReduc = 11; tailleSysReduc < 31; tailleSysReduc++) {
 				if (garantis == 4 && tailleSysReduc == 26) break;
 				int nbIterations = 3;
 				//Génération des sets de grilles et conservation du meilleur pour chaque paramètres
@@ -44,7 +44,7 @@ public class GenerationSolucesOptis {
 				}
 				//Affichage
 				System.out.println("\nPramètres : "+tailleSysReduc+" "+garantis);
-				System.out.println("Taille de l'ensemble de grille retenu : " + grillesAJouerRetenues.size());
+				System.out.println("Taille de l'ensemble de grilles retenu : " + grillesAJouerRetenues.size());
 				
 				//Création du nom du fichier en fontion des paramètres actuels
 				String nFic = "Ressources/data_";
@@ -90,7 +90,7 @@ public class GenerationSolucesOptis {
 			System.out.println("Erreur écriture dans le fichier prix");
 			e.printStackTrace();
 		}
-		
+		System.out.println("\n\nGénération terminée avec succès");
 	}
 
 }

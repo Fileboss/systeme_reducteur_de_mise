@@ -69,7 +69,7 @@ public class Outils {
 		try {
 			ligne = monFic.readLine();
 			if (Float.valueOf(ligne.substring(5)) < prix*coefTaux && Float.valueOf(ligne.substring(5)) > prix*coefInv) {
-				recups.add("Taille du système réducteur : "+ligne.substring(0, 2)+" Nombres garantis : "+ligne.charAt(3));
+				recups.add("Taille du système réducteur : "+ligne.substring(0, 2)+" Nombres garantis : "+ligne.charAt(3)+" Prix estimé : "+ligne.substring(5)+" euros");
 			}
 		} catch (IOException e) {
 			System.out.println("Erreur de lecture du fichier prix");
@@ -79,7 +79,7 @@ public class Outils {
 		while (ligne != null) {
 			try {
 				if (Float.valueOf(ligne.substring(5)) < prix*coefTaux && Float.valueOf(ligne.substring(5)) > prix*coefInv) {
-					recups.add("Taille du système réducteur : "+ligne.substring(0, 2)+" Nombres garantis : "+ligne.charAt(3));
+					recups.add("Taille du système réducteur : "+ligne.substring(0, 2)+" | Nombres garantis : "+ligne.charAt(3)+" | Prix estimé : "+ligne.substring(5)+" euros");
 				}
 				ligne = monFic.readLine();
 			} catch (IOException e) {
