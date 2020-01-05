@@ -15,7 +15,7 @@ public class GenerationSolucesOptis {
 	 */
 	public static void main(String[] args) {
 
-		long startTime = System.nanoTime();
+		//long startTime = System.nanoTime();
 
 		// Vérification de la présence du dossier 
 		//Ressources et création le cas échéant
@@ -33,7 +33,7 @@ public class GenerationSolucesOptis {
 		// Liste dans laquelle on va récupérer 
 		//les prix en fonction des paramètres
 		List<String> strPrix = new ArrayList<>();
-		int nbIterations = 10;
+		int nbIterations = 0;
 
 		for (int garantis = 2; garantis < 5; garantis++) {
 			for (int tailleSysReduc = 11; tailleSysReduc < 31; tailleSysReduc++) {
@@ -51,10 +51,10 @@ public class GenerationSolucesOptis {
 					}
 				}
 				// Affichage
-				System.out.println("\nPramètres : " + tailleSysReduc + " " 
-						+ garantis);
-				System.out.println("Taille de l'ensemble de grilles retenu : "
-						+ grillesAJouerRetenues.size());
+//				System.out.println("\nPramètres : " + tailleSysReduc + " " 
+//						+ garantis);
+//				System.out.println("Taille de l'ensemble de grilles retenu : "
+//						+ grillesAJouerRetenues.size());
 
 				// Création du nom du fichier en fontion des paramètres actuels
 				String nFic = "Ressources/data_";
@@ -103,15 +103,15 @@ public class GenerationSolucesOptis {
 			System.out.println("Erreur écriture dans le fichier prix");
 			e.printStackTrace();
 		}
-		long endTime = System.nanoTime();
-		long timeElapsed = endTime - startTime;
+		//long endTime = System.nanoTime();
+		//long timeElapsed = endTime - startTime;
 		System.out.println("Nombre de générations : " + nbIterations + 1);
-		System.out.println("\n\nGénération terminée avec succès en "
-				+ timeElapsed / 1000000000 + " s");
-		System.out.println("Temps pour 1 itérations : "
-				+ (timeElapsed / 1000000000) / (nbIterations + 1) + " s");
-		System.out.println("Temps estimé pour 1000 itérations : "
-				+ ((timeElapsed / 1000000000) / (nbIterations + 1)) * 1000 + " s");
+		System.out.println("\n\nGénération terminée avec succès ");
+				//+ timeElapsed / 1000000000 + " s");
+//		System.out.println("Temps pour 1 itérations : "
+//				+ (timeElapsed / 1000000000) / (nbIterations + 1) + " s");
+//		System.out.println("Temps estimé pour 1000 itérations : "
+//				+ ((timeElapsed / 1000000000) / (nbIterations + 1)) * 1000 + " s");
 	}
 
 }
