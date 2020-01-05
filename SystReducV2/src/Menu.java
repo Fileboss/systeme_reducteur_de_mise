@@ -15,7 +15,7 @@ public class Menu {
 
 	static DecimalFormat df = new DecimalFormat();
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
 		final float PRIXGRILLE = 2.5F;
 		df.setMaximumFractionDigits(2);
 		Scanner entree = new Scanner(System.in);
@@ -78,7 +78,8 @@ public class Menu {
 								if (confirm)
 									System.out.println("|| + Nombre(s) ajouté(s)");
 								else
-									System.out.println("|| /!\\ Nombre(s) non ajouté(s)");
+									System.out.println("|| /!\\ Nombre(s) "
+											+ "non ajouté(s)");
 							System.out.println(" ");
 							System.out.println(">> Saisir nombre(s) à ajouter");
 							System.out.println("séparés par un espace "
@@ -146,8 +147,8 @@ public class Menu {
 								if (confirm)
 									System.out.println("|| - Nombre(s) supprimé(s)");
 								else
-									System.out
-											.println("|| /!\\ Nombre(s) non supprimé(s)");
+									System.out.println("|| /!\\ Nombre(s) "
+											+ "non supprimé(s)");
 							System.out.println(" ");
 							System.out.println(">> Saisir nombre(s) à supprimer");
 							System.out.println("séparés par un espace ou une virgule"
@@ -184,7 +185,8 @@ public class Menu {
 								splitted.removeAll(filtre);
 
 								if (!confirm && toModif.size() > 0) {
-									System.out.println("|| Ne peuvent pas être supprimé : "
+									System.out.println("|| Ne peuvent pas "
+											+ "être supprimé : "
 													+ splitted
 													+ " Peuvent être supprimé : "
 													+ toModif);
@@ -393,7 +395,7 @@ public class Menu {
 						float prix = grillesRecuperees.size() * PRIXGRILLE;
 
 						choix = "oui";
-						// Vérification du respect de la mise maximum, avec 
+						// Vérification du respect de la mise maximum, avec
 						// une marge de 15%
 						if (prix > miseMax * margeMise) {
 							Menu.prixDepasseMiseMenu(prix, miseMax, margeMise);
@@ -440,7 +442,8 @@ public class Menu {
 							}
 							Path fichier = Paths.get(nFic);
 							try {
-								Files.write(fichier, strGrilles, Charset.forName("UTF-8"),
+								Files.write(fichier, strGrilles, 
+										Charset.forName("UTF-8"),
 										StandardOpenOption.APPEND);
 							} catch (IOException e) {
 								e.printStackTrace();
@@ -448,8 +451,10 @@ public class Menu {
 							// Affichahe des grilles jouées
 							Menu.clear();
 							for (int i = 0; i < grillesRecuperees.size(); i++) {
-								if (i % 3 == 0 && i != 0) System.out.print("\n");
-								if (i % 15 == 0 && i != 0) System.out.print("\n");
+								if (i % 3 == 0 && i != 0)
+									System.out.print("\n");
+								if (i % 15 == 0 && i != 0)
+									System.out.print("\n");
 								System.out.print(grillesRecuperees.get(i) + " | ");
 							}
 							System.out.println("\n\n" + grillesRecuperees.size()
@@ -665,13 +670,14 @@ public class Menu {
 	}
 
 	private static void prixDepasseMiseMenu(float p, float mm, float tx) {
-		float txConv = (tx - 1) *100;
+		float txConv = (tx - 1) * 100;
 		System.out.println("=================================");
 		System.out.println("||     /!\\ Attention /!\\     ||");
 		System.out.println("=================================");
 		System.out.println("||");
 		System.out.println("|| Avec les paramètres sélectionnés, la somme");
-		System.out.println("|| que vous devez miser dépasse de plus de "+df.format(txConv)+"%");
+		System.out.println(
+				"|| que vous devez miser dépasse de plus de " + df.format(txConv) + "%");
 		System.out.println("|| la mise maximale que vous aviez indiquée.");
 		System.out.println("|| Souhaitez-vous continuer ?");
 		System.out.println("|| Prix estimé : " + p + "euros");

@@ -10,7 +10,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class Menu {
+public class MenuSave {
 
 
     public static void main(String[] args) throws IOException {
@@ -18,8 +18,8 @@ public class Menu {
         Scanner entree = new Scanner(System.in);
         String choix;
         //message de mise en garde et demande +18
-        Menu.clear();
-        Menu.avertissementMenu();
+        MenuSave.clear();
+        MenuSave.avertissementMenu();
 
         choix = entree.nextLine();
         //On quite le programme si le message n'est pas accepté
@@ -50,7 +50,7 @@ public class Menu {
                     do {
 
                         //Menu selection actions nombres du réducteur
-                        Menu.nombresSystemeMenu(reducteurNombres);
+                        MenuSave.nombresSystemeMenu(reducteurNombres);
                         System.out.println(">> Saisir une action :");
                         choix = entree.nextLine();
 
@@ -174,7 +174,7 @@ public class Menu {
                     confirm = null;
                     do {
                         //menu garantie
-                        Menu.garantieMenu(nbGarantis);
+                        MenuSave.garantieMenu(nbGarantis);
                         if(confirm != null) if(confirm) System.out.println("|| # Garantie modifiée"); else System.out.println("|| /!\\ Nombre invalide");
                         System.out.println(" ");
                         System.out.println(">> Saisir la grantie désirée (ou 0 pour quitter) :");
@@ -195,7 +195,7 @@ public class Menu {
                     confirm = null;
                     do {
                         //menu mise max
-                        Menu.miseMaxMenu(miseMax);
+                        MenuSave.miseMaxMenu(miseMax);
                         if(confirm != null) if(confirm) System.out.println("|| # Mise max modifiée"); else System.out.println("|| /!\\ Nombre invalide");
                         System.out.println(" ");
                         System.out.println(">> Saisir la mise max (ou 0 pour quitter) :");
@@ -215,7 +215,7 @@ public class Menu {
 
                 case "4":
                     do {
-                        Menu.clear();
+                        MenuSave.clear();
                         if(reducteurNombres.size() < 11) {
                             System.out.println("=================================");
                             System.out.println("/!\\ Impossible de générer les grilles, vous n'avez pas saisi assez de nombres.");
@@ -258,7 +258,7 @@ public class Menu {
                 		choix = "oui";
                 		//Vérification du respect de la mise maximum, avec une marge de 15%
                 		if (prix > miseMax * 1.15F) {
-                			Menu.prixDepasseMiseMenu(prix, miseMax);
+                			MenuSave.prixDepasseMiseMenu(prix, miseMax);
                 	        choix = entree.nextLine();
                 		}
                 		
@@ -291,7 +291,7 @@ public class Menu {
 							}
 							//Affichahe des grilles jouées
 							//System.out.println( grillesRecuperees.size()+" grilles récupérées : \n"+grillesRecuperees);
-							Menu.clear();
+							MenuSave.clear();
 							System.out.println("\n" + grillesRecuperees.size() + " grilles générées dans le fichier \""
 									+ nFic + "\" : \n" + grillesRecuperees);
 							System.out.println("\n MONTANT A MISER :" + prix + "€\n");
@@ -307,7 +307,7 @@ public class Menu {
             }
 
             //on affiche le menu principal
-            Menu.accueilMenu(reducteurNombres.size(), nbGarantis, miseMax);
+            MenuSave.accueilMenu(reducteurNombres.size(), nbGarantis, miseMax);
             System.out.println(">> Saisir une action :");
             choix = entree.nextLine();
 
@@ -347,7 +347,7 @@ public class Menu {
      * @param mm Mise maximale
      */
     private static void accueilMenu(int taillesys, int garanti, float mm) {
-        Menu.clear();
+        MenuSave.clear();
         System.out.println("=================================");
         System.out.println("||        MENU PRINCIPAL       ||");
         System.out.println("=================================");
@@ -360,7 +360,7 @@ public class Menu {
         System.out.println("|| 3 >> Choix mise max");
         System.out.println("||");
         System.out.println("|| 4 >> Générer les grilles");
-        Menu.finMenu();
+        MenuSave.finMenu();
     }
 
     /**
@@ -368,7 +368,7 @@ public class Menu {
      * @param r liste des nombres choisis
      */
     private static void nombresSystemeMenu(List<Integer> r) {
-        Menu.clear();
+        MenuSave.clear();
         System.out.println("=================================");
         System.out.println("||      Nombres du systeme     ||");
         System.out.println("=================================");
@@ -377,7 +377,7 @@ public class Menu {
         System.out.println("||");
         System.out.println("|| 1 >> Ajouter des nombres");
         System.out.println("|| 2 >> Supprimer des nombres");
-        Menu.finMenu();
+        MenuSave.finMenu();
     } 
 
     /**
@@ -385,7 +385,7 @@ public class Menu {
      * @param r	liste des nombres choisis
      */
     private static void ajouterNombresSystemeMenu(List<Integer> r) {
-        Menu.clear();
+        MenuSave.clear();
         System.out.println("=================================");
         System.out.println("||       Ajouter nombres       ||");
         System.out.println("=================================");
@@ -400,7 +400,7 @@ public class Menu {
      * @param r liste des nombres choisis
      */
     private static void supprimNombresSystemeMenu(List<Integer> r) {
-        Menu.clear();
+        MenuSave.clear();
         System.out.println("=================================");
         System.out.println("||      Supprimer nombres      ||");
         System.out.println("=================================");
@@ -414,7 +414,7 @@ public class Menu {
      * @param g nombre de nombres garantis
      */
     private static void garantieMenu(int g) {
-        Menu.clear();
+        MenuSave.clear();
         System.out.println("=================================");
         System.out.println("||       Nombres garantis      ||");
         System.out.println("=================================");
@@ -428,7 +428,7 @@ public class Menu {
      * @param mm mise maximale
      */
     private static void miseMaxMenu(float mm) {
-        Menu.clear();
+        MenuSave.clear();
         System.out.println("=================================");
         System.out.println("||           Mise max          ||");
         System.out.println("=================================");

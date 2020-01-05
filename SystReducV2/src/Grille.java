@@ -3,25 +3,28 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Grille implements Comparable<Grille>{
+public class Grille implements Comparable<Grille> {
 
-
-	
 	private List<Integer> nombres;
 
 	/**
 	 * Constructeur de la classe Grille
-	 * @param a
-	 * @param b
-	 * @param c
-	 * @param d
-	 * @param e
+	 * 
+	 * Entrées :
+	 * 
+	 * @param a premier nombre de la grille
+	 * @param b second nombre de la grille
+	 * @param c troisième nombre de la grille
+	 * @param d quatrième nombre de la grille
+	 * @param e cinquième nombre de la grille
 	 */
-	public Grille(int a, int b, int c, int d, int e) throws IllegalArgumentException{
-		if (a < 1 || a > 50 || b < 1 || b > 50 || c < 1 || c > 50 || d < 1 || d > 50 || e < 1 || e > 50) {
-			throw new IllegalArgumentException("Les nombres d'une grille doivent être compris entre 1 et 50");
+	public Grille(int a, int b, int c, int d, int e) throws IllegalArgumentException {
+		if (a < 1 || a > 50 || b < 1 || b > 50 || c < 1 || c > 50 || d < 1 || d > 50
+				|| e < 1 || e > 50) {
+			throw new IllegalArgumentException(
+					"Les nombres d'une grille doivent être compris entre 1 et 50");
 		}
-		
+
 		this.nombres = new ArrayList<>();
 
 		this.nombres.add(a);
@@ -33,11 +36,18 @@ public class Grille implements Comparable<Grille>{
 		Collections.sort(this.nombres);
 	}
 
-	public Grille(String s) throws IllegalArgumentException{
+	/**
+	 * Second constructeur de la classe Grille. Permet de créer une grille à partir
+	 * d'une chaine contenant les nombres de la grille
+	 * 
+	 * @param s chaîne contenant les nombres à ajouter à la grille
+	 * @throws IllegalArgumentException
+	 */
+	public Grille(String s) throws IllegalArgumentException {
 		if (s.length() != 14) {
 			throw new IllegalArgumentException("Chaine invalide");
 		}
-		
+
 		this.nombres = new ArrayList<>();
 		this.nombres.add(Integer.valueOf(s.substring(0, 2)));
 		this.nombres.add(Integer.valueOf(s.substring(3, 5)));
@@ -45,7 +55,12 @@ public class Grille implements Comparable<Grille>{
 		this.nombres.add(Integer.valueOf(s.substring(9, 11)));
 		this.nombres.add(Integer.valueOf(s.substring(12, 14)));
 	}
-	
+
+	/**
+	 * permet de récupérer sous forme de liste les nombres de la grille
+	 * 
+	 * @return la liste des nombres de la grille
+	 */
 	public List<Integer> getNombres() {
 		return this.nombres;
 	}
@@ -64,11 +79,21 @@ public class Grille implements Comparable<Grille>{
 		return res;
 	}
 
-	public static List<Grille> enumererGrilles(int nbNombres) throws IllegalArgumentException{
+	/**
+	 * Permet d'énumérer toutes les grilles possibles avec des entiers entre 1 et
+	 * nbNombres
+	 * 
+	 * @param nbNombres
+	 * @return liste 
+	 * @throws IllegalArgumentException
+	 */
+	public static List<Grille> enumererGrilles(int nbNombres)
+			throws IllegalArgumentException {
 		if (nbNombres > 50 || nbNombres < 1) {
-			throw new IllegalArgumentException("Le nombre doit être compris entre 1 et 50");
+			throw new IllegalArgumentException(
+					"Le nombre doit être compris entre 1 et 50");
 		}
-		
+
 		List<Grille> res = new ArrayList<>();
 		int n = nbNombres;
 		int r = 5;
@@ -87,14 +112,15 @@ public class Grille implements Comparable<Grille>{
 		return res;
 	}
 
-	public void testerSansAjout(List<Grille> ensemble, TableauBooleen tabBool, int garantie) throws IllegalArgumentException{
+	public void testerSansAjout(List<Grille> ensemble, TableauBooleen tabBool,
+			int garantie) throws IllegalArgumentException {
 		if (ensemble == null || tabBool == null) {
 			throw new IllegalArgumentException("paramètre null");
 		}
 		if (garantie < 2 || garantie > 4) {
 			throw new IllegalArgumentException("garantie invalide");
 		}
-		
+
 		if (!tabBool.estEntièrementVrai()) {
 			for (int i = 0; i < ensemble.size(); i++) {
 				if (this.nbNombresEnCommun(ensemble.get(i)) >= garantie) {
@@ -134,18 +160,18 @@ public class Grille implements Comparable<Grille>{
 		return true;
 	}
 
-	public List<Integer> nombresEnCommun(Grille g) throws IllegalArgumentException{
+	public List<Integer> nombresEnCommun(Grille g) throws IllegalArgumentException {
 		if (g == null) {
 			throw new IllegalArgumentException("Paramètre null");
 		}
-		
+
 		List<Integer> stock1 = new ArrayList<>(this.nombres);
 		List<Integer> stock2 = new ArrayList<>(g.nombres);
 		stock1.retainAll(stock2);
 		return stock1;
 	}
 
-	public int nbNombresEnCommun(Grille g){
+	public int nbNombresEnCommun(Grille g) {
 		return this.nombresEnCommun(g).size();
 	}
 
