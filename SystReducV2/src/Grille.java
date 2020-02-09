@@ -55,6 +55,14 @@ public class Grille implements Comparable<Grille> {
 		this.nombres.add(Integer.valueOf(s.substring(9, 11)));
 		this.nombres.add(Integer.valueOf(s.substring(12, 14)));
 	}
+	
+	public Grille(GrilleBinaire g) {
+		this.nombres = new ArrayList<>();
+		int[] binG = g.getBin();
+		for (int i = 0; i < binG.length; i++) {
+			if (binG[i] == 1) this.nombres.add(i+1);
+		}
+	}
 
 	/**
 	 * permet de récupérer sous forme de liste les nombres de la grille
