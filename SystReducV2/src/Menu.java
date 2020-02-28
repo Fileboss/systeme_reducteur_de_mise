@@ -16,7 +16,7 @@ public class Menu {
 	static DecimalFormat df = new DecimalFormat();
 
 	public static void main(String[] args) {
-		final float PRIXGRILLE = 2.5F;
+
 		df.setMaximumFractionDigits(2);
 		Scanner entree = new Scanner(System.in);
 		String choix;
@@ -40,6 +40,7 @@ public class Menu {
 		/// VARIABLES "GLOBALES"
 		final int NB_NB_JOUABLES = 50; // pour generer une array de 1 a 50
 		float margeMise = 1.15F;
+		float prixGrille = 2.5F;
 		int nbGarantis = 2; // garantie que veut l'utilisateur
 		float miseMax = 0; // mise max de l'utilisteur
 		List<Integer> reducteurNombres = new ArrayList<>(); // nombres de l'utilisateur
@@ -328,13 +329,38 @@ public class Menu {
 
 			case "5":
 				do {
-					// suggestion parametres
-					Menu.suggestionParamsMenu(margeMise, miseMax);
-					System.out.println(">> Saisir une action :");
+					// menu prix grille
+					Menu.prixGrilleMenu(prixGrille);
+					if (confirm != null)
+						if (confirm)
+							System.out.println("|| # Prix grille modifié");
+						else
+							System.out.println("|| /!\\ Nombre invalide");
+					System.out.println(" ");
+					System.out.println(">> Saisir un nouveau prix pour une grille"
+							+ " (ou 0 pour quitter) :");
 					choix = entree.nextLine();
+					if (!choix.equals("0")) {
+						float nb;
+						try {
+							nb = Float.valueOf(choix);
+							if (confirm = (nb > 0.0f && nb <= 99999.0f))
+								prixGrille = nb;
+						} catch (Exception e) {
+							confirm = false;
+						}
+					}
 
 				} while (!choix.equals("0"));
 				break;
+			case "6":
+					do {
+						// suggestion parametres
+						Menu.suggestionParamsMenu(margeMise, miseMax);
+						System.out.println(">> Saisir une action :");
+						choix = entree.nextLine();
+					} while (!choix.equals("0"));
+					break;
 
 			case "9":
 				do {
@@ -392,7 +418,7 @@ public class Menu {
 						}
 
 						// Calcul du prix des grilles
-						float prix = grillesRecuperees.size() * PRIXGRILLE;
+						float prix = grillesRecuperees.size() * prixGrille;
 
 						choix = "oui";
 						// Vérification du respect de la mise maximum, avec
@@ -475,7 +501,7 @@ public class Menu {
 
 			// on affiche le menu principal
 			Menu.accueilMenu(reducteurNombres.size(), nbGarantis, miseMax,
-					(margeMise - 1.0F) * 100.0F);
+					(margeMise - 1.0F) * 100.0F, prixGrille);
 			System.out.println(">> Saisir une action :");
 			choix = entree.nextLine();
 
@@ -515,7 +541,7 @@ public class Menu {
 	 * @param garanti   nombre de nombres garantis
 	 * @param mm        Mise maximale
 	 */
-	private static void accueilMenu(int taillesys, int garanti, float mm, float mm2) {
+	private static void accueilMenu(int taillesys, int garanti, float mm, float mm2, float pg) {
 		Menu.clear();
 		System.out.println("=================================");
 		System.out.println("||        MENU PRINCIPAL       ||");
@@ -524,12 +550,14 @@ public class Menu {
 		System.out.println("|| # " + garanti + " nombre(s) garanti(s).");
 		System.out.println("|| # Mise maximale définie : " + mm);
 		System.out.println("|| # Marge mise définie : " + df.format(mm2) + "%");
+		System.out.println("|| # Prix grille défini : " + pg + "euros.");
 		System.out.println("||");
 		System.out.println("|| 1 >> Choix des nombres du système");
 		System.out.println("|| 2 >> Choix garantie");
 		System.out.println("|| 3 >> Choix mise max");
 		System.out.println("|| 4 >> Choix marge mise");
-		System.out.println("|| 5 >> Suggestion de paramètres selon mise");
+		System.out.println("|| 5 >> Choix prix grille");
+		System.out.println("|| 6 >> Suggestion de paramètres selon mise");
 		System.out.println("||");
 		System.out.println("|| 9 >> Générer les grilles");
 		Menu.finMenu();
@@ -685,6 +713,16 @@ public class Menu {
 		System.out.println("|| ");
 		System.out.println("|| oui : continuer");
 		System.out.println("|| non : retour au menu");
+	}
+
+	private static void prixGrilleMenu(float p) {
+		Menu.clear();
+		System.out.println("=================================");
+		System.out.println("||         Prix Grille         ||");
+		System.out.println("=================================");
+		System.out.println("|| # Prix grille défini : " + p + "euros");
+		System.out.println("|| # Prix d'une grille doit être supérieur à 0.0euros.");
+		System.out.println("||");
 	}
 
 }
