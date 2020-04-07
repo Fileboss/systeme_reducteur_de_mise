@@ -39,10 +39,12 @@ public class Menu {
 
 		/// VARIABLES "GLOBALES"
 		final int NB_NB_JOUABLES = 50; // pour generer une array de 1 a 50
+		final int NB_DANS_GRILLE = 5;
 		float margeMise = 1.15F;
 		float prixGrille = 2.5F;
 		int nbGarantis = 2; // garantie que veut l'utilisateur
 		float miseMax = 0; // mise max de l'utilisteur
+		String chancesGain = "0.00";
 		List<Integer> reducteurNombres = new ArrayList<>(); // nombres de l'utilisateur
 		List<Integer> list50 = new ArrayList<>(NB_NB_JOUABLES); // nombres ajoutables
 
@@ -76,8 +78,10 @@ public class Menu {
 							// Menu ajout nombres
 							ajouterNombresSystemeMenu(reducteurNombres);
 							if (confirm != null)
-								if (confirm)
+								if (confirm) {
 									System.out.println("|| + Nombre(s) ajouté(s)");
+									chancesGain = Outils.doubleString(Outils.calculChance(NB_NB_JOUABLES, reducteurNombres.size(), NB_DANS_GRILLE, nbGarantis));
+								}
 								else
 									System.out.println("|| /!\\ Nombre(s) "
 											+ "non ajouté(s)");
@@ -145,8 +149,10 @@ public class Menu {
 							// Menu suppression nombres
 							supprimNombresSystemeMenu(reducteurNombres);
 							if (confirm != null)
-								if (confirm)
+								if (confirm) {
 									System.out.println("|| - Nombre(s) supprimé(s)");
+									chancesGain = Outils.doubleString(Outils.calculChance(NB_NB_JOUABLES, reducteurNombres.size(), NB_DANS_GRILLE, nbGarantis));
+								}
 								else
 									System.out.println("|| /!\\ Nombre(s) "
 											+ "non supprimé(s)");
@@ -251,8 +257,10 @@ public class Menu {
 					// menu garantie
 					Menu.garantieMenu(nbGarantis);
 					if (confirm != null)
-						if (confirm)
+						if (confirm) {
 							System.out.println("|| # Garantie modifiée");
+							chancesGain = Outils.doubleString(Outils.calculChance(NB_NB_JOUABLES, reducteurNombres.size(), NB_DANS_GRILLE, nbGarantis));
+						}
 						else
 							System.out.println("|| /!\\ Nombre invalide");
 					System.out.println(" ");
@@ -309,9 +317,8 @@ public class Menu {
 							System.out.println("|| # Marge mise modifiée");
 						else
 							System.out.println("|| /!\\ Nombre invalide");
-					System.out.println(" ");
-					System.out.println(">> Saisir la marge en pourcents(%)"
-							+ " (ou 0 pour quitter) :");
+					System.out.println(	"\n>> Saisir la marge en pourcents(%)" +
+										" (ou 0 pour quitter) :");
 					choix = entree.nextLine();
 					if (!choix.equals("0")) {
 						float nb;
@@ -336,9 +343,8 @@ public class Menu {
 							System.out.println("|| # Prix grille modifié");
 						else
 							System.out.println("|| /!\\ Nombre invalide");
-					System.out.println(" ");
-					System.out.println(">> Saisir un nouveau prix pour une grille"
-							+ " (ou 0 pour quitter) :");
+					System.out.println(	"\n>> Saisir un nouveau prix pour une grille" +
+										" (ou 0 pour quitter) :");
 					choix = entree.nextLine();
 					if (!choix.equals("0")) {
 						float nb;
@@ -353,6 +359,7 @@ public class Menu {
 
 				} while (!choix.equals("0"));
 				break;
+
 			case "6":
 					do {
 						// suggestion parametres
@@ -452,7 +459,7 @@ public class Menu {
 							}
 							// Ecriture des grilles dans les fichiers de resultat
 							String nFic = "Resultats/";
-							nFic += format.format(dateCourante) + ".txt";
+							nFic += format.format(dateCourante) + ".csv";
 							File f = new File(nFic);
 							try {
 								f.createNewFile();
@@ -498,10 +505,10 @@ public class Menu {
 				} while (!choix.equals("0"));
 				break;
 			}
-
+			if(reducteurNombres.size() < 11 || reducteurNombres.size() > 30) chancesGain = "0.00";
 			// on affiche le menu principal
 			Menu.accueilMenu(reducteurNombres.size(), nbGarantis, miseMax,
-					(margeMise - 1.0F) * 100.0F, prixGrille);
+					(margeMise - 1.0F) * 100.0F, prixGrille, chancesGain);
 			System.out.println(">> Saisir une action :");
 			choix = entree.nextLine();
 
@@ -541,11 +548,17 @@ public class Menu {
 	 * @param garanti   nombre de nombres garantis
 	 * @param mm        Mise maximale
 	 */
-	private static void accueilMenu(int taillesys, int garanti, float mm, float mm2, float pg) {
+	private static void accueilMenu(int taillesys, int garanti, float mm, float mm2, float pg, String ch) {
 		Menu.clear();
 		System.out.println("=================================");
 		System.out.println("||        MENU PRINCIPAL       ||");
 		System.out.println("=================================");
+		System.out.println("||");
+		if(!ch.equals("0.00"))
+			System.out.println("|| # " + ch + "% de chances de gain du palier de nombres garantis");
+		else
+			System.out.println("|| # Paramètres invalide pour afficher le pourcentage de chances de gain");
+		System.out.println("||");
 		System.out.println("|| # " + taillesys + " nombre(s) choisi(s).");
 		System.out.println("|| # " + garanti + " nombre(s) garanti(s).");
 		System.out.println("|| # Mise maximale définie : " + mm);

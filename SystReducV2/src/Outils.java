@@ -1,10 +1,12 @@
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -121,5 +123,24 @@ public class Outils {
 		}
 
 		return recups;
+	}
+
+	public static BigInteger binomial(final int N, final int K) {
+		BigInteger ret = BigInteger.ONE;
+		for (int k = 0; k < K; k++) {
+			ret = ret.multiply(BigInteger.valueOf(N-k))
+					.divide(BigInteger.valueOf(k+1));
+		}
+		return ret;
+	}
+
+	public static double calculChance(final int nbNumTotal, final int nbNumJoue, final int nbNumGagnant, final int rang) {
+		return binomial(nbNumGagnant, rang).multiply(binomial(nbNumTotal - nbNumGagnant, nbNumJoue - rang)).doubleValue() / binomial(nbNumTotal, nbNumJoue).doubleValue()*100;
+	}
+
+	public static String doubleString(double d) {
+		DecimalFormat f = new DecimalFormat();
+		f.setMaximumFractionDigits(2);
+		return f.format(d);
 	}
 }
