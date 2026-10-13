@@ -115,6 +115,9 @@ pub enum Command {
         /// Écrase la table existante même si la nouvelle n'est pas plus petite
         #[arg(long)]
         force: bool,
+        /// Repart de la table existante au lieu du glouton, pour prolonger une recherche
+        #[arg(long)]
+        resume: bool,
     },
     /// Vérifie qu'un fichier de grilles couvre bien tous les tirages de 1..n
     Verify {
@@ -221,6 +224,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             runs,
             out,
             force,
+            resume,
         } => {
             let cfg = GenConfig {
                 seed,
@@ -238,7 +242,7 @@ pub fn run(cli: Cli) -> anyhow::Result<()> {
             };
             fs::create_dir_all(&out)?;
             for (n, t) in params {
-                generate_one(n, t, &cfg, &out, force)?;
+                generate_one(n, t, &cfg, &out, force, resume)?;
             }
         }
         Command::Verify { fichier, n, t } => {
@@ -268,20 +272,39 @@ fn rayon_threads() -> usize {
         .unwrap_or(1)
 }
 
-fn generate_one(n: usize, t: u8, cfg: &GenConfig, out: &Path, force: bool) -> anyhow::Result<()> {
+fn generate_one(
+    n: usize,
+    t: u8,
+    cfg: &GenConfig,
+    out: &Path,
+    force: bool,
+    resume: bool,
+) -> anyhow::Result<()> {
     let path = out.join(format!("{n}_{t}.txt"));
     let existing = fs::read_to_string(&path)
         .ok()
         .and_then(|text| Table::parse(n, t, &text).ok());
     let start = Instant::now();
-    let generated = generate(n, t, cfg)?;
+    let origin = if resume && existing.is_some() {
+        "reprise"
+    } else {
+        "glouton"
+    };
+    let cfg = GenConfig {
+        initial: existing
+            .as_ref()
+            .filter(|_| resume)
+            .map(|tb| tb.grids().to_vec()),
+        ..cfg.clone()
+    };
+    let generated = generate(n, t, &cfg)?;
     let size = generated.table.len();
     let status = match &existing {
         Some(old) if old.len() <= size && !force => format!("conservée ({} grilles)", old.len()),
         _ => {
             let header = format!(
-                "srm : couverture de 1..{n}, garantie {t}\n{size} grilles (glouton : {}), graine {}, vérifiée par force brute",
-                generated.greedy_size, generated.seed
+                "srm : couverture de 1..{n}, garantie {t}\n{size} grilles (départ {origin} : {}), graine {}, vérifiée par force brute",
+                generated.start_size, generated.seed
             );
             fs::write(&path, generated.table.to_text(Some(&header)))?;
             match existing {
@@ -291,8 +314,8 @@ fn generate_one(n: usize, t: u8, cfg: &GenConfig, out: &Path, force: bool) -> an
         }
     };
     println!(
-        "{n:>2}/{t} : glouton {:>5}, final {size:>5} en {:.1} s, {status}",
-        generated.greedy_size,
+        "{n:>2}/{t} : {origin} {:>5}, final {size:>5} en {:.1} s, {status}",
+        generated.start_size,
         start.elapsed().as_secs_f64()
     );
     Ok(())
