@@ -5,3 +5,7 @@ Ce projet est un logiciel développé en Java qui permet de réduire les mises p
 **Note:** Ce fichier README.md fournit une brève description du projet. Pour plus d'informations sur le fonctionnement de ce logiciel, veuillez vous référer au rapport complet.
 
 Ce projet a été réaliser dans le cadre d'un projet tutauré pour l'IUT informatique de Toulouse III Paul Sabatier. M. Brice Arnault jouait le role du client, et M. Jerome Fehrenbach était notre tuteur et nous a encadré.
+
+### Version Rust (2026)
+
+Le dossier [`srm-rs/`](srm-rs/README.md) contient une réécriture complète en Rust : CLI, interface terminal et interface web, tests unitaires, et un algorithme de génération (glouton + recuit simulé) qui produit des systèmes nettement plus petits (par exemple 38 grilles au lieu de 60 pour 20 numéros / garantie 3). La version Java d'origine reste dans `SystReducV2/`.

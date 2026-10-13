@@ -1,0 +1,23 @@
+[package]
+name = "srm"
+description = "Système réducteur de mise : CLI, TUI et interface web"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1.0.104"
+axum = "0.8.9"
+chrono = "0.4.45"
+clap = { version = "4.6.7", features = ["derive"] }
+ratatui = "0.30.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+srm-core = { path = "../srm-core" }
+tokio = { version = "1.53.2", features = ["rt-multi-thread", "macros", "net"] }
+
+[dev-dependencies]
+assert_cmd = "2.2.2"
+http-body-util = "0.1.5"
+predicates = "3.1.4"
+tower = "0.5.3"
