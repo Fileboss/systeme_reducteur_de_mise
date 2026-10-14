@@ -4,8 +4,9 @@ use serde::Serialize;
 
 use crate::table::{Table, embedded_tables};
 
-/// Prix d'une grille par défaut (celui de la version de 2019, paramétrable partout).
-pub const DEFAULT_GRID_PRICE: f64 = 2.5;
+/// Prix d'une grille par défaut : celui de l'EuroMillions, jeu par défaut
+/// (voir [`crate::game::Game::default_price`] pour les autres jeux).
+pub const DEFAULT_GRID_PRICE: f64 = crate::game::Game::EuroMillions.default_price();
 
 /// Marge par défaut autour de la mise visée (±15 %).
 pub const DEFAULT_MARGIN: f64 = 1.15;
@@ -14,30 +15,36 @@ pub const DEFAULT_MARGIN: f64 = 1.15;
 pub struct Offer {
     pub n: usize,
     pub t: u8,
+    /// Grilles de numéros.
     pub grids: usize,
+    /// Tickets joués : grilles × combinaisons de compléments.
+    pub tickets: usize,
     pub price: f64,
 }
 
 impl Offer {
-    pub fn from_table(table: &Table, grid_price: f64) -> Self {
+    /// `combos` : nombre de combinaisons de compléments jouées avec chaque grille (1 sans réduction).
+    pub fn from_table(table: &Table, grid_price: f64, combos: usize) -> Self {
+        let tickets = table.len() * combos.max(1);
         Self {
             n: table.n(),
             t: table.t(),
             grids: table.len(),
-            price: table.len() as f64 * grid_price,
+            tickets,
+            price: tickets as f64 * grid_price,
         }
     }
 }
 
 /// Toutes les offres disponibles, triées par `(n, t)`.
-pub fn catalog(grid_price: f64) -> Vec<Offer> {
-    catalog_from(embedded_tables(), grid_price)
+pub fn catalog(grid_price: f64, combos: usize) -> Vec<Offer> {
+    catalog_from(embedded_tables(), grid_price, combos)
 }
 
-pub fn catalog_from(tables: &[Table], grid_price: f64) -> Vec<Offer> {
+pub fn catalog_from(tables: &[Table], grid_price: f64, combos: usize) -> Vec<Offer> {
     let mut offers: Vec<Offer> = tables
         .iter()
-        .map(|t| Offer::from_table(t, grid_price))
+        .map(|t| Offer::from_table(t, grid_price, combos))
         .collect();
     offers.sort_by_key(|o| (o.n, o.t));
     offers
@@ -70,8 +77,18 @@ mod tests {
             n,
             t,
             grids,
+            tickets: grids,
             price: grids as f64 * 2.5,
         }
+    }
+
+    #[test]
+    fn combos_multiply_tickets_and_price() {
+        let table = Table::parse(7, 3, "01,02,03,04,05\n03,04,05,06,07\n").unwrap();
+        let o = Offer::from_table(&table, 2.2, 3);
+        assert_eq!((o.grids, o.tickets), (2, 6));
+        assert!((o.price - 13.2).abs() < 1e-9);
+        assert_eq!(Offer::from_table(&table, 2.5, 0).tickets, 2);
     }
 
     #[test]

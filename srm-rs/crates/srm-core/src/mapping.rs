@@ -5,6 +5,7 @@
 
 use crate::combinatorics::MAX_NUMBER;
 use crate::error::{Error, Result};
+use crate::game::Game;
 use crate::grid::Grid;
 use crate::table::Table;
 
@@ -19,6 +20,19 @@ pub fn normalize_selection(numbers: &[u8]) -> Result<Vec<u8>> {
     }
     if let Some(&bad) = sorted.iter().find(|&&x| x == 0 || x > MAX_NUMBER) {
         return Err(Error::InvalidNumber(i64::from(bad)));
+    }
+    Ok(sorted)
+}
+
+/// Comme [`normalize_selection`], en vérifiant aussi que les numéros existent dans ce jeu (49 au Loto).
+pub fn normalize_for_game(game: Game, numbers: &[u8]) -> Result<Vec<u8>> {
+    let sorted = normalize_selection(numbers)?;
+    if let Some(&bad) = sorted.iter().find(|&&x| x > game.pool()) {
+        return Err(Error::OutOfPool {
+            what: "numéro",
+            value: i64::from(bad),
+            max: game.pool(),
+        });
     }
     Ok(sorted)
 }
@@ -84,5 +98,15 @@ mod tests {
     #[test]
     fn normalize_sorts() {
         assert_eq!(normalize_selection(&[5, 1, 3]).unwrap(), vec![1, 3, 5]);
+    }
+
+    #[test]
+    fn pool_depends_on_game() {
+        assert!(normalize_for_game(Game::EuroMillions, &[1, 50]).is_ok());
+        let err = normalize_for_game(Game::Loto, &[1, 50]).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "numéro invalide : 50 (doit être entre 1 et 49)"
+        );
     }
 }

@@ -4,7 +4,8 @@ use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use srm_core::combinatorics::MAX_NUMBER;
+use srm_core::extras::{ExtraMode, combo_count};
+use srm_core::game::Game;
 use srm_core::pricing::{self, DEFAULT_MARGIN, Offer};
 use srm_core::report::{self, Comparison, Report, Settings};
 use srm_core::space::{MAX_N, MAX_T, MIN_N, MIN_T};
@@ -21,6 +22,7 @@ pub enum Screen {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Focus {
     Numbers,
+    Extras,
     Grids,
 }
 
@@ -39,16 +41,24 @@ pub struct Input {
 pub struct App {
     pub screen: Screen,
     pub focus: Focus,
-    /// Numéro sous le curseur, de 1 à 50.
+    /// Numéro sous le curseur, de 1 au plus grand numéro du jeu.
     pub cursor: u8,
     pub selected: BTreeSet<u8>,
     pub t: u8,
+    /// Complément sous le curseur (étoile ou numéro chance).
+    pub extra_cursor: u8,
+    pub extras: BTreeSet<u8>,
+    /// Compléments réduits (sinon fixes : exactement ceux d'une grille).
+    pub reduce_extras: bool,
+    /// Garantie sur les compléments en mode réduit.
+    pub extra_t: u8,
     pub budget: Option<f64>,
     pub settings: Settings,
     pub input: Option<Input>,
     pub report: Result<Report, String>,
     pub comparison: Option<Comparison>,
     pub suggestions: Vec<Offer>,
+    /// Premier ticket affiché.
     pub scroll: usize,
     pub message: Option<String>,
     pub save_dir: PathBuf,
@@ -63,6 +73,10 @@ impl Default for App {
             cursor: 1,
             selected: BTreeSet::new(),
             t: 3,
+            extra_cursor: 1,
+            extras: BTreeSet::new(),
+            reduce_extras: false,
+            extra_t: 1,
             budget: None,
             settings: Settings::default(),
             input: None,
@@ -80,8 +94,25 @@ impl Default for App {
 }
 
 impl App {
+    pub fn game(&self) -> Game {
+        self.settings.game
+    }
+
     pub fn selection(&self) -> Vec<u8> {
         self.selected.iter().copied().collect()
+    }
+
+    pub fn extra_mode(&self) -> ExtraMode {
+        if self.reduce_extras {
+            ExtraMode::Reduced { t: self.extra_t }
+        } else {
+            ExtraMode::Fixed
+        }
+    }
+
+    /// Nombre de tickets du rapport courant (0 si la sélection est incomplète).
+    pub fn ticket_count(&self) -> usize {
+        self.report.as_ref().map(|r| r.tickets).unwrap_or(0)
     }
 
     /// Recalcule le rapport et les suggestions après tout changement.
@@ -89,16 +120,30 @@ impl App {
         let n = self.selected.len();
         self.comparison = None;
         self.scroll = 0;
+        let extras: Vec<u8> = self.extras.iter().copied().collect();
         self.report = if !(MIN_N..=MAX_N).contains(&n) {
             Err(format!(
                 "Choisissez entre {MIN_N} et {MAX_N} numéros ({n} sélectionnés)"
             ))
         } else {
-            report::build(&self.selection(), self.t, self.settings).map_err(|e| e.to_string())
+            report::build(
+                &self.selection(),
+                self.t,
+                &extras,
+                self.extra_mode(),
+                self.settings,
+            )
+            .map_err(|e| e.to_string())
+        };
+        // Les suggestions tiennent compte du multiplicateur des compléments, s'il est valide.
+        let combos = if extras.is_empty() {
+            1
+        } else {
+            combo_count(self.game(), extras.len(), self.extra_mode()).unwrap_or(1)
         };
         self.suggestions = match self.budget {
             Some(b) => pricing::suggest(
-                &pricing::catalog(self.settings.grid_price),
+                &pricing::catalog(self.settings.grid_price, combos),
                 b,
                 DEFAULT_MARGIN,
             ),
@@ -127,16 +172,38 @@ impl App {
             KeyCode::Char('q') | KeyCode::Esc => self.quit = true,
             KeyCode::Tab => {
                 self.focus = match self.focus {
-                    Focus::Numbers => Focus::Grids,
+                    Focus::Numbers | Focus::Extras => Focus::Grids,
                     Focus::Grids => Focus::Numbers,
+                }
+            }
+            KeyCode::Char('e') => {
+                self.focus = match self.focus {
+                    Focus::Extras => Focus::Numbers,
+                    _ => Focus::Extras,
                 }
             }
             KeyCode::Char('+') | KeyCode::Char('=') => self.set_t(self.t + 1),
             KeyCode::Char('-') => self.set_t(self.t.saturating_sub(1)),
+            KeyCode::Char(']') => self.set_extra_t(self.extra_t + 1),
+            KeyCode::Char('[') => self.set_extra_t(self.extra_t.saturating_sub(1)),
+            KeyCode::Char('j') => self.switch_game(),
+            KeyCode::Char('r') => {
+                self.reduce_extras = !self.reduce_extras;
+                self.refresh();
+                self.message = Some(
+                    if self.reduce_extras {
+                        "Compléments réduits : choisissez-en davantage, garantie avec [ ]"
+                    } else {
+                        "Compléments fixes : ceux d'une grille, joués partout"
+                    }
+                    .into(),
+                );
+            }
             KeyCode::Char('m') => self.start_input(Field::Budget),
             KeyCode::Char('p') => self.start_input(Field::GridPrice),
             KeyCode::Char('c') => {
                 self.selected.clear();
+                self.extras.clear();
                 self.refresh();
                 self.message = Some("Sélection vidée".into());
             }
@@ -145,6 +212,7 @@ impl App {
             KeyCode::Char('s') => self.save(),
             _ => match self.focus {
                 Focus::Numbers => self.on_numbers_key(code),
+                Focus::Extras => self.on_extras_key(code),
                 Focus::Grids => self.on_grids_key(code),
             },
         }
@@ -152,11 +220,12 @@ impl App {
 
     fn on_numbers_key(&mut self, code: KeyCode) {
         let c = self.cursor;
+        let pool = self.game().pool();
         self.cursor = match code {
             KeyCode::Left if !(c - 1).is_multiple_of(COLS) => c - 1,
-            KeyCode::Right if (c - 1) % COLS < COLS - 1 => c + 1,
+            KeyCode::Right if (c - 1) % COLS < COLS - 1 && c < pool => c + 1,
             KeyCode::Up if c > COLS => c - COLS,
-            KeyCode::Down if c + COLS <= MAX_NUMBER => c + COLS,
+            KeyCode::Down if c + COLS <= pool => c + COLS,
             KeyCode::Char(' ') | KeyCode::Enter => {
                 self.toggle(c);
                 c
@@ -165,9 +234,21 @@ impl App {
         };
     }
 
+    fn on_extras_key(&mut self, code: KeyCode) {
+        let c = self.extra_cursor;
+        self.extra_cursor = match code {
+            KeyCode::Left if c > 1 => c - 1,
+            KeyCode::Right if c < self.game().extra_pool() => c + 1,
+            KeyCode::Char(' ') | KeyCode::Enter => {
+                self.toggle_extra(c);
+                c
+            }
+            _ => c,
+        };
+    }
+
     fn on_grids_key(&mut self, code: KeyCode) {
-        let len = self.report.as_ref().map(|r| r.grids.len()).unwrap_or(0);
-        let max = len.saturating_sub(1);
+        let max = self.ticket_count().saturating_sub(1);
         self.scroll = match code {
             KeyCode::Up => self.scroll.saturating_sub(1),
             KeyCode::Down => (self.scroll + 1).min(max),
@@ -190,12 +271,67 @@ impl App {
         self.refresh();
     }
 
+    pub fn toggle_extra(&mut self, extra: u8) {
+        if !self.extras.remove(&extra) {
+            let per = usize::from(self.game().extras_per_grid());
+            if !self.reduce_extras && self.extras.len() >= per {
+                self.message = Some(format!(
+                    "Mode fixe : {per} {} au maximum (r pour réduire les compléments)",
+                    crate::format::plural(self.game(), per)
+                ));
+                return;
+            }
+            self.extras.insert(extra);
+        }
+        self.refresh();
+    }
+
     pub fn set_t(&mut self, t: u8) {
         let t = t.clamp(MIN_T, MAX_T);
         if t != self.t {
             self.t = t;
             self.refresh();
         }
+    }
+
+    pub fn set_extra_t(&mut self, t: u8) {
+        if !self.reduce_extras {
+            self.message =
+                Some("La garantie des compléments ne sert qu'en mode réduit (touche r)".into());
+            return;
+        }
+        let t = t.min(self.game().extras_per_grid());
+        if t != self.extra_t {
+            self.extra_t = t;
+            self.refresh();
+        }
+    }
+
+    /// Passe à l'autre jeu : retire les numéros et compléments qui n'y existent pas.
+    pub fn switch_game(&mut self) {
+        let game = match self.game() {
+            Game::EuroMillions => Game::Loto,
+            Game::Loto => Game::EuroMillions,
+        };
+        self.settings = Settings {
+            game,
+            grid_price: game.default_price(),
+            return_rate: self.settings.return_rate,
+        };
+        self.selected.retain(|&n| n <= game.pool());
+        self.extras.retain(|&e| e <= game.extra_pool());
+        if !self.reduce_extras {
+            // En mode fixe, garder au plus les compléments d'une grille.
+            let per = usize::from(game.extras_per_grid());
+            while self.extras.len() > per {
+                self.extras.pop_last();
+            }
+        }
+        self.extra_t = self.extra_t.min(game.extras_per_grid());
+        self.cursor = self.cursor.min(game.pool());
+        self.extra_cursor = self.extra_cursor.min(game.extra_pool());
+        self.refresh();
+        self.message = Some(format!("Jeu : {}", crate::format::game_rules(game)));
     }
 
     fn start_input(&mut self, field: Field) {
@@ -272,7 +408,7 @@ impl App {
     fn save(&mut self) {
         self.message = Some(match &self.report {
             Ok(r) => match crate::cli::save_report(r, &self.save_dir) {
-                Ok(path) => format!("Grilles enregistrées dans {}", path.display()),
+                Ok(path) => format!("Tickets enregistrés dans {}", path.display()),
                 Err(e) => format!("Échec de l'enregistrement : {e}"),
             },
             Err(e) => e.clone(),
@@ -397,5 +533,74 @@ mod tests {
         assert_eq!(app.scroll, len - 1);
         press(&mut app, KeyCode::Home);
         assert_eq!(app.scroll, 0);
+    }
+
+    fn pick_extras(app: &mut App, extras: &[u8]) {
+        press(app, KeyCode::Char('e'));
+        assert_eq!(app.focus, Focus::Extras);
+        for &e in extras {
+            app.extra_cursor = e;
+            press(app, KeyCode::Char(' '));
+        }
+    }
+
+    #[test]
+    fn fixed_extras_are_capped_and_cost_nothing_more() {
+        let mut app = main_app();
+        for n in 1..=12 {
+            app.toggle(n);
+        }
+        let grids = app.ticket_count();
+        pick_extras(&mut app, &[2, 9, 11]);
+        assert_eq!(app.extras.len(), 2, "mode fixe : 2 étoiles au maximum");
+        assert!(app.message.as_deref().unwrap().contains("Mode fixe"));
+        assert_eq!(app.ticket_count(), grids);
+        // ← → bornés à 1..12.
+        app.extra_cursor = 12;
+        press(&mut app, KeyCode::Right);
+        assert_eq!(app.extra_cursor, 12);
+    }
+
+    #[test]
+    fn reduced_extras_multiply_tickets() {
+        let mut app = main_app();
+        for n in 1..=12 {
+            app.toggle(n);
+        }
+        let grids = app.ticket_count();
+        press(&mut app, KeyCode::Char('['));
+        assert!(app.message.as_deref().unwrap().contains("mode réduit"));
+        press(&mut app, KeyCode::Char('r'));
+        assert!(app.reduce_extras);
+        pick_extras(&mut app, &[1, 4, 7, 9]);
+        assert_eq!(app.extra_t, 1);
+        assert_eq!(app.ticket_count(), grids * 2);
+        press(&mut app, KeyCode::Char(']'));
+        press(&mut app, KeyCode::Char(']'));
+        assert_eq!(app.extra_t, 2, "garantie bornée à 2 étoiles");
+        assert_eq!(app.ticket_count(), grids * 6);
+    }
+
+    #[test]
+    fn switching_game_cleans_selection() {
+        let mut app = main_app();
+        for n in 39..=50 {
+            app.toggle(n);
+        }
+        press(&mut app, KeyCode::Char('r'));
+        pick_extras(&mut app, &[3, 11, 12]);
+        app.cursor = 50;
+        press(&mut app, KeyCode::Char('j'));
+        assert_eq!(app.game(), Game::Loto);
+        assert_eq!(app.settings.grid_price, 2.2);
+        assert!(!app.selected.contains(&50));
+        assert_eq!(app.selected.len(), 11);
+        assert_eq!(app.extras.iter().copied().collect::<Vec<_>>(), vec![3]);
+        assert_eq!(app.cursor, 49);
+        assert!(app.report.is_ok(), "{:?}", app.report.as_ref().err());
+        // Retour à l'EuroMillions.
+        press(&mut app, KeyCode::Char('j'));
+        assert_eq!(app.game(), Game::EuroMillions);
+        assert_eq!(app.settings.grid_price, 2.5);
     }
 }

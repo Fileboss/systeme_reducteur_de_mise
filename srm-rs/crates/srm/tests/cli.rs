@@ -133,3 +133,111 @@ fn stats_compares_with_random() {
         .stdout(predicate::str::contains("système"))
         .stdout(predicate::str::contains("hasard"));
 }
+
+const TWELVE: [&str; 12] = [
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
+];
+
+fn json(args: &[&str]) -> serde_json::Value {
+    let out = srm()
+        .args(["play"])
+        .args(TWELVE)
+        .args(args)
+        .arg("--json")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    serde_json::from_slice(&out).unwrap()
+}
+
+#[test]
+fn fixed_stars_are_played_on_every_grid() {
+    let base = json(&[]);
+    let fixed = json(&["--extra", "9,2"]);
+    assert_eq!(fixed["tickets"], base["tickets"]);
+    assert_eq!(fixed["extra_sets"], serde_json::json!([[2, 9]]));
+    srm()
+        .args(["play"])
+        .args(TWELVE)
+        .args(["--extra", "2,9"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("★ 02 09"))
+        .stdout(predicate::str::contains("fixes"));
+}
+
+#[test]
+fn reduced_extras_multiply_tickets() {
+    let base = json(&["--jeu", "loto"]);
+    let loto = json(&[
+        "--jeu",
+        "loto",
+        "--extra",
+        "1,4,7",
+        "--reduire-extra",
+        "--garantie-extra",
+        "1",
+    ]);
+    let grids = base["tickets"].as_u64().unwrap();
+    assert_eq!(loto["tickets"].as_u64().unwrap(), grids * 3);
+    assert_eq!(loto["game"], "loto");
+    // 2,20 € la grille au Loto.
+    assert!((loto["cost"].as_f64().unwrap() - grids as f64 * 3.0 * 2.2).abs() < 1e-9);
+
+    let em = json(&["--extra", "1,4,7,9", "--reduire-extra"]);
+    assert_eq!(em["extra_t"], 1, "garantie 1 étoile par défaut");
+    assert_eq!(em["tickets"].as_u64().unwrap(), grids * 2);
+}
+
+#[test]
+fn extras_errors_are_explained() {
+    srm()
+        .args(["play"])
+        .args(TWELVE)
+        .args(["--extra", "2,13"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("étoile invalide : 13"));
+    srm()
+        .args(["play"])
+        .args(TWELVE)
+        .args(["--extra", "1,2,3"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("mode fixe"));
+    srm()
+        .args(["play"])
+        .args(TWELVE)
+        .args(["--garantie-extra", "1"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--reduire-extra"));
+    srm()
+        .args([
+            "play", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50",
+            "--jeu", "loto",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("entre 1 et 49"));
+}
+
+#[test]
+fn suggest_takes_extras_into_account() {
+    srm()
+        .args([
+            "suggest",
+            "--mise",
+            "200",
+            "--jeu",
+            "loto",
+            "--extra",
+            "1,2",
+            "--reduire-extra",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("tickets"));
+}

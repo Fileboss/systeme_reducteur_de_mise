@@ -18,6 +18,14 @@ pub enum Error {
     Parse { line: usize, msg: String },
     #[error("couverture invalide : le tirage {0} n'est pas couvert")]
     NotCovered(String),
+    #[error("{what} invalide : {value} (doit être entre 1 et {max})")]
+    OutOfPool {
+        what: &'static str,
+        value: i64,
+        max: u8,
+    },
+    #[error("{0}")]
+    Extras(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

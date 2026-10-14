@@ -31,7 +31,7 @@ fn bench(c: &mut Criterion) {
 
     let grids = Table::embedded(20, 3).unwrap().grids().to_vec();
     c.bench_function("distribution exacte, 20/3", |b| {
-        b.iter(|| best_match_distribution(&grids))
+        b.iter(|| best_match_distribution(50, &grids))
     });
 }
 

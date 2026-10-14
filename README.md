@@ -8,4 +8,12 @@ Ce projet a été réaliser dans le cadre d'un projet tutauré pour l'IUT inform
 
 ### Version Rust (2026)
 
-Le dossier [`srm-rs/`](srm-rs/README.md) contient une réécriture complète en Rust : CLI, interface terminal et interface web, tests unitaires, et un algorithme de génération (glouton + recuit simulé) qui produit des systèmes nettement plus petits (par exemple 38 grilles au lieu de 60 pour 20 numéros / garantie 3). La version Java d'origine reste dans `SystReducV2/`.
+Le dossier [`srm-rs/`](srm-rs/README.md) contient une réécriture complète en Rust : CLI, interface terminal et interface web, tests unitaires, et un algorithme de génération (glouton + recuit simulé) qui produit des systèmes nettement plus petits (par exemple 38 grilles au lieu de 60 pour 20 numéros / garantie 3). Elle gère l'EuroMillions (5 parmi 50, le jeu réellement modélisé en 2019) et le Loto (5 parmi 49), avec les étoiles ou le numéro chance, fixes ou réduits. La version Java d'origine reste dans `SystReducV2/`.
+
+```sh
+cd srm-rs
+cargo run --release -- tui     # interface terminal
+cargo run --release -- serve   # interface web, puis ouvrir http://127.0.0.1:8080
+```
+
+Détails, raccourcis clavier et autres commandes : [`srm-rs/README.md`](srm-rs/README.md).

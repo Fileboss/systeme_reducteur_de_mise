@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Système réducteur</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <style>
   :root {
     --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6860; --line: #e2dfd7;
     --accent: #2f5d8a; --accent-ink: #ffffff; --pick: #e8b931; --pick-ink: #1d1c1a;
     --warn-bg: #fdf3e1; --warn-ink: #7a4b00; --sys: #2f5d8a; --rnd: #b5b0a3;
+    --star: #c0392b; --star-ink: #ffffff;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -16,6 +18,7 @@
       --bg: #151514; --panel: #1f1f1d; --ink: #ecebe6; --muted: #9c998f; --line: #34332f;
       --accent: #7fb0de; --accent-ink: #10202f; --pick: #e8b931; --pick-ink: #1d1c1a;
       --warn-bg: #2d2412; --warn-ink: #f0c879; --sys: #7fb0de; --rnd: #5d5a53;
+      --star: #e8705f; --star-ink: #1d1c1a;
       color-scheme: dark;
     }
   }
@@ -55,9 +58,17 @@
   .tile .d { font-size: 12px; color: var(--muted); }
   .msg { color: var(--muted); }
   .err { color: var(--warn-ink); }
-  .grids { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; max-height: 360px; overflow: auto; }
-  .g { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--line); white-space: nowrap; }
-  .g i { color: var(--muted); font-style: normal; margin-right: 6px; }
+  .grids { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; max-height: 420px; overflow: auto; }
+  .g { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--line); white-space: nowrap; display: flex; align-items: center; min-height: 36px; }
+  /* Complément (étoile ou numéro chance) : numéro dans une étoile. */
+  /* Étoile « dodue » (rayon intérieur large) pour laisser la place à deux chiffres au centre. */
+  .star { display: inline-grid; place-items: center; width: 36px; height: 36px; margin-left: 2px; padding-top: 4px; flex: none;
+    background: var(--star); color: var(--star-ink); font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -0.5px;
+    clip-path: polygon(50% 0%, 63.5% 31.5%, 97.5% 34.5%, 72% 57%, 79.5% 90.5%, 50% 73%, 20.5% 90.5%, 28% 57%, 2.5% 34.5%, 36.5% 31.5%); }
+  .g .star:first-of-type { margin-left: 10px; }
+  /* Numéro du ticket : « #5 », petit, grisé et séparé des numéros joués par un trait vertical. */
+  .g i { min-width: 5ch; color: var(--muted); font-style: normal; font-size: 11px;
+    padding-right: 8px; margin-right: 10px; border-right: 1px solid var(--line); align-self: stretch; display: flex; align-items: center; justify-content: flex-end; }
   .sugg { list-style: none; margin: 0; padding: 0; }
   .sugg li { display: flex; justify-content: space-between; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-variant-numeric: tabular-nums; }
   .sugg li:hover { background: var(--bg); }
@@ -65,12 +76,21 @@
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
   svg text { fill: var(--ink); font: 12px system-ui, sans-serif; }
   svg .axis { fill: var(--muted); }
+  .xpicker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 270px; }
+  .num.extra.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .check { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; margin-top: 14px; cursor: pointer; width: fit-content; }
+  .check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+  .hint { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .hint.err { color: var(--warn-ink); }
+  .combos { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+  .combos b { color: var(--ink); font: 600 13px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
   <h1>Système réducteur de mise</h1>
-  <p class="sub">Loto, 5 numéros parmi 50. Choisissez vos numéros et une garantie, et obtenez le plus petit jeu de grilles connu qui la respecte.</p>
+  <p class="sub">EuroMillions ou Loto. Choisissez vos numéros, vos compléments et une garantie, et obtenez le plus petit jeu de grilles connu qui la respecte.</p>
   <div class="warn">Réservé aux plus de 18 ans. Un système réducteur organise votre jeu mais <strong>ne change pas l'espérance de gain</strong> : en moyenne, environ la moitié de la mise est perdue. Joueurs Info Service : 09 74 75 13 13.</div>
 
   <div class="layout">
@@ -86,7 +106,16 @@
         </div>
       </section>
       <section class="panel">
+        <h2><span id="extrasTitle">Étoiles</span> <span id="xcount"></span></h2>
+        <div class="xpicker" id="xpicker"></div>
+        <label class="check"><input type="checkbox" id="reduce"> Réduire les compléments</label>
+        <div class="field" id="xtField" hidden><label>Garantie (<span id="xtLabel">étoiles</span>)</label><div class="seg" id="xtSeg"></div></div>
+        <p class="hint" id="xhint"></p>
+      </section>
+      <section class="panel">
         <h2>Paramètres</h2>
+        <div class="field"><label>Jeu</label>
+          <div class="seg" id="gameSeg"><button data-g="euromillions" class="on">EuroMillions</button><button data-g="loto">Loto</button></div></div>
         <div class="field"><label>Garantie (bons numéros)</label>
           <div class="seg" id="tSeg"><button data-t="2">2</button><button data-t="3" class="on">3</button><button data-t="4">4</button></div></div>
         <div class="field"><label for="price">Prix d'une grille (€)</label><input type="number" id="price" min="0.1" step="0.1" value="2.5"></div>
@@ -101,12 +130,13 @@
         <div id="summary" class="msg">Choisissez entre 6 et 30 numéros.</div>
       </section>
       <section class="panel">
-        <h2>Part des 2 118 760 tirages où au moins une grille a…</h2>
+        <h2 id="chartTitle">Part des tirages où au moins une grille a…</h2>
         <div class="legend"><span><span class="sw" style="background:var(--sys)"></span>votre système</span><span><span class="sw" style="background:var(--rnd)"></span>autant de grilles au hasard parmi vos numéros</span></div>
         <div id="chart" class="msg">—</div>
       </section>
       <section class="panel">
-        <h2>Grilles à jouer <span id="gcount"></span></h2>
+        <h2>Tickets à jouer <span id="gcount"></span></h2>
+        <p class="combos" id="combos" hidden></p>
         <div class="grids" id="grids"></div>
       </section>
     </div>
@@ -114,19 +144,88 @@
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
-const state = { picked: new Set(), t: 3, report: null };
+const GAMES = {
+  euromillions: { name: "EuroMillions", pool: 50, per: 2, extraPool: 12, price: 2.5, title: "Étoiles", one: "étoile", many: "étoiles", sym: "★" },
+  loto: { name: "Loto", pool: 49, per: 1, extraPool: 10, price: 2.2, title: "Numéros chance", one: "numéro chance", many: "numéros chance", sym: "chance" },
+};
+const state = { game: "euromillions", picked: new Set(), t: 3, extras: new Set(), reduce: false, extraT: 1, report: null };
+const G = () => GAMES[state.game];
 const fmtEur = (x) => x.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const fmtPct = (p) => (p > 0 && p < 0.0001 ? (p * 100).toLocaleString("fr-FR", { maximumFractionDigits: 4 }) : (p * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })) + " %";
+const fmtInt = (x) => x.toLocaleString("fr-FR");
 const pad = (n) => String(n).padStart(2, "0");
+const sorted = (set) => [...set].sort((a, b) => a - b);
 
 function buildPicker() {
   const p = $("picker");
-  for (let n = 1; n <= 50; n++) {
+  p.innerHTML = "";
+  for (let n = 1; n <= G().pool; n++) {
     const b = document.createElement("button");
     b.className = "num"; b.dataset.n = n; b.innerHTML = `${pad(n)}<span class="use"></span>`;
     b.onclick = () => { state.picked.has(n) ? state.picked.delete(n) : state.picked.size < 30 && state.picked.add(n); update(); };
     p.appendChild(b);
   }
+}
+
+function buildExtras() {
+  const g = G();
+  const p = $("xpicker");
+  p.innerHTML = "";
+  for (let e = 1; e <= g.extraPool; e++) {
+    const b = document.createElement("button");
+    b.className = "num extra"; b.dataset.e = e; b.textContent = pad(e);
+    b.onclick = () => toggleExtra(e);
+    p.appendChild(b);
+  }
+  $("extrasTitle").textContent = g.title;
+  $("xtLabel").textContent = g.many;
+  $("xtSeg").innerHTML = Array.from({ length: g.per + 1 }, (_, s) => `<button data-s="${s}">${s}</button>`).join("");
+  state.extraT = Math.min(state.extraT, g.per);
+}
+
+function toggleExtra(e) {
+  const g = G();
+  if (state.extras.has(e)) state.extras.delete(e);
+  else if (!state.reduce && state.extras.size >= g.per) {
+    hint(`Mode fixe : ${g.per} ${g.per > 1 ? g.many : g.one} au maximum. Cochez « Réduire les compléments » pour en jouer davantage.`, true);
+    return;
+  } else state.extras.add(e);
+  update(); suggest();
+}
+
+/** Compléments valides pour le mode courant (sinon ignorés jusqu'à ce que la sélection soit complète). */
+function extrasReady() {
+  const m = state.extras.size, per = G().per;
+  return m > 0 && (state.reduce ? m >= per : m === per);
+}
+
+/** Nombre de combinaisons de compléments jouées avec chaque grille (même formule que le serveur). */
+function combos() {
+  if (!extrasReady() || !state.reduce) return 1;
+  const m = state.extras.size, s = state.extraT;
+  if (s === 0) return 1;
+  if (G().per === 1) return m;
+  return s === 1 ? Math.floor(m / 2) : (m * (m - 1)) / 2;
+}
+
+function hint(text, isErr) {
+  const h = $("xhint");
+  h.textContent = text;
+  h.classList.toggle("err", !!isErr);
+}
+
+function renderExtras() {
+  const g = G(), m = state.extras.size;
+  for (const b of $("xpicker").children) b.classList.toggle("on", state.extras.has(+b.dataset.e));
+  $("xcount").textContent = `(${m})`;
+  $("reduce").checked = state.reduce;
+  $("xtField").hidden = !state.reduce;
+  for (const b of $("xtSeg").children) b.classList.toggle("on", +b.dataset.s === state.extraT);
+  if (m === 0) hint(`Facultatif : sans ${g.many}, seules les grilles de numéros sont calculées.`);
+  else if (!state.reduce && m < g.per) hint(`Choisissez encore ${g.per - m} ${g.per - m > 1 ? g.many : g.one}.`);
+  else if (!state.reduce) hint(`Mode fixe : ${g.per > 1 ? "ces " + g.many + " sont jouées" : "ce " + g.one + " est joué"} sur toutes les grilles, sans surcoût.`);
+  else if (m < g.per) hint(`Choisissez au moins ${g.per} ${g.many}.`, true);
+  else hint(`Mode réduit : ${combos()} combinaison${combos() > 1 ? "s" : ""} de ${g.many}, chaque grille est jouée avec chacune (coût × ${combos()}).`);
 }
 
 function renderPicker() {
@@ -148,18 +247,28 @@ async function api(path, body) {
   return data;
 }
 
+function requestBody() {
+  const ready = extrasReady();
+  return {
+    numbers: [...state.picked], t: state.t, game: state.game,
+    extras: ready ? sorted(state.extras) : [],
+    extra_mode: state.reduce ? { mode: "reduced", t: state.extraT } : { mode: "fixed" },
+    grid_price: +$("price").value || G().price,
+  };
+}
+
 let seq = 0;
 async function update() {
-  renderPicker();
+  renderPicker(); renderExtras();
   const my = ++seq;
   const n = state.picked.size;
   state.report = null;
   if (n < 6 || n > 30) {
     $("summary").innerHTML = `<span class="msg">Choisissez entre 6 et 30 numéros (${n} sélectionnés).</span>`;
-    $("grids").innerHTML = ""; $("gcount").textContent = ""; $("chart").textContent = "—";
+    $("grids").innerHTML = ""; $("gcount").textContent = ""; $("chart").textContent = "—"; $("combos").hidden = true;
     renderPicker(); return;
   }
-  const body = { numbers: [...state.picked], t: state.t, grid_price: +$("price").value || 2.5 };
+  const body = requestBody();
   try {
     const r = await api("/api/play", body);
     if (my !== seq) return;
@@ -176,23 +285,49 @@ async function update() {
 }
 
 function renderReport(r) {
-  const oneIn = Math.round(1 / r.prob_guarantee).toLocaleString("fr-FR");
+  const g = G();
+  const oneIn = fmtInt(Math.round(1 / r.prob_guarantee));
+  const nCombos = r.extra_sets.length;
+  const ticketsDetail = nCombos ? `${r.grids.length} grilles × ${nCombos} combinaison${nCombos > 1 ? "s" : ""}` : `${r.numbers.length} numéros, garantie ${r.t}`;
+  let extrasSentence = "";
+  if (r.extra_t > 0) {
+    const won = state.game === "loto" ? "le bon numéro chance" : r.extra_t === 1 ? "au moins 1 bonne étoile" : "les 2 bonnes étoiles";
+    const cond = state.game === "loto" ? "le numéro chance gagnant est" : "les 2 étoiles gagnantes sont";
+    extrasSentence = ` Le même ticket a aussi ${won} si ${cond} parmi les vôtres.`;
+  } else if (!r.extra_mode) {
+    extrasSentence = ` ${g.title} au choix : non ${state.game === "loto" ? "pris" : "prises"} en compte.`;
+  }
   $("summary").innerHTML = `
     <div class="tiles">
-      <div class="tile"><div class="k">Grilles</div><div class="v">${r.grids.length}</div><div class="d">${r.numbers.length} numéros, garantie ${r.t}</div></div>
-      <div class="tile"><div class="k">Coût</div><div class="v">${fmtEur(r.cost)}</div><div class="d">${fmtEur(r.cost / r.grids.length)} la grille</div></div>
+      <div class="tile"><div class="k">Tickets</div><div class="v">${fmtInt(r.tickets)}</div><div class="d">${ticketsDetail}</div></div>
+      <div class="tile"><div class="k">Coût</div><div class="v">${fmtEur(r.cost)}</div><div class="d">${fmtEur(r.cost / r.tickets)} le ticket</div></div>
       <div class="tile"><div class="k">La garantie s'applique</div><div class="v">${fmtPct(r.prob_guarantee)}</div><div class="d">1 tirage sur ${oneIn}</div></div>
       <div class="tile"><div class="k">Perte moyenne attendue</div><div class="v">${fmtEur(r.expected_loss)}</div><div class="d">identique sans système</div></div>
     </div>
-    <p class="msg" style="margin:12px 0 0">Si les 5 numéros gagnants sont tous parmi les vôtres, au moins une grille en contient ${r.t} ou plus. Sinon, rien n'est garanti.</p>`;
-  $("gcount").textContent = `(${r.grids.length})`;
-  $("grids").innerHTML = r.grids.map((g, i) => `<div class="g"><i>${String(i + 1).padStart(3, " ")}</i>${g.map(pad).join(" ")}</div>`).join("");
+    <p class="msg" style="margin:12px 0 0">Si les 5 numéros gagnants sont tous parmi les vôtres, au moins une grille en contient ${r.t} ou plus.${extrasSentence} Sinon, rien n'est garanti.</p>`;
+  $("gcount").textContent = `(${fmtInt(r.tickets)})`;
+  // Chaque ticket : la grille, puis ses compléments, chacun dans une étoile. Au-delà de MAX_SHOWN tickets,
+  // on n'affiche que le début (la CLI avec --save écrit la liste complète).
+  const MAX_SHOWN = 3000;
+  const sets = nCombos ? r.extra_sets : [null];
+  const rows = [];
+  outer: for (const grid of r.grids) {
+    for (const set of sets) {
+      if (rows.length >= MAX_SHOWN) break outer;
+      const stars = set ? set.map((e) => `<span class="star" title="${g.one} ${e}">${pad(e)}</span>`).join("") : "";
+      rows.push(`<div class="g"><i title="ticket n° ${rows.length + 1}">#${rows.length + 1}</i>${grid.map(pad).join(" ")}${stars}</div>`);
+    }
+  }
+  $("grids").innerHTML = rows.join("");
+  $("combos").hidden = r.tickets <= MAX_SHOWN;
+  $("combos").textContent = `Affichage des ${fmtInt(MAX_SHOWN)} premiers tickets sur ${fmtInt(r.tickets)}. La liste complète : srm play … --save.`;
 }
 
 function renderChart(c) {
   // Cumulé : « au moins k bons numéros » se lit ligne par ligne, contrairement à « exactement k ».
   const tot = (d) => d.counts.reduce((a, b) => a + b, 0);
   const atLeast = (d, k) => d.counts.slice(k).reduce((a, b) => a + b, 0) / tot(d);
+  $("chartTitle").textContent = `Part des ${fmtInt(tot(c.system))} tirages de numéros où au moins une grille a…`;
   const rows = [5, 4, 3, 2, 1].map((k) => ({ k, s: atLeast(c.system, k), r: atLeast(c.random, k) }));
   const max = Math.max(...rows.flatMap((x) => [x.s, x.r]));
   const W = 640, rowH = 44, left = 110, right = 90, barH = 15;
@@ -208,18 +343,19 @@ function renderChart(c) {
     svg += `<text class="axis" x="${left + Math.max(scale(x.r), 1) + 6}" y="${y + barH + 14}">${fmtPct(x.r)}</text>`;
   });
   svg += "</svg>";
-  $("chart").innerHTML = svg + `<p class="msg" style="margin:8px 0 0">Au moins ${state.t} bons numéros (votre garantie) : <strong>${fmtPct(atLeast(c.system, state.t))}</strong> des tirages avec le système, ${fmtPct(atLeast(c.random, state.t))} au hasard. Le gain moyen reste le même : le système gagne un peu plus souvent, mais moins par tirage gagnant.</p>`;
+  $("chart").innerHTML = svg + `<p class="msg" style="margin:8px 0 0">Au moins ${state.t} bons numéros (votre garantie) : <strong>${fmtPct(atLeast(c.system, state.t))}</strong> des tirages avec le système, ${fmtPct(atLeast(c.random, state.t))} au hasard. Calcul sur les numéros seuls. Le gain moyen reste le même : le système gagne un peu plus souvent, mais moins par tirage gagnant.</p>`;
 }
 
 async function suggest() {
   const mise = +$("budget").value;
   const ul = $("sugg");
   if (!mise) { ul.innerHTML = ""; return; }
-  const offers = await api(`/api/suggest?mise=${mise}&prix=${+$("price").value || 2.5}`);
+  const offers = await api(`/api/suggest?mise=${mise}&jeu=${state.game}&combos=${combos()}&prix=${+$("price").value || G().price}`);
   ul.innerHTML = offers.length ? "" : '<li class="msg">Aucun système dans cette gamme de prix.</li>';
   for (const o of offers) {
     const li = document.createElement("li");
-    li.innerHTML = `<span>${o.n} numéros, garantie ${o.t}</span><span>${o.grids} grilles · ${fmtEur(o.price)}</span>`;
+    const count = o.tickets === o.grids ? `${o.grids} grilles` : `${fmtInt(o.tickets)} tickets`;
+    li.innerHTML = `<span>${o.n} numéros, garantie ${o.t}</span><span>${count} · ${fmtEur(o.price)}</span>`;
     li.title = "Appliquer : garantie et nombre de numéros";
     li.onclick = () => { setT(o.t); $("howMany").value = o.n; if (state.picked.size !== o.n) randomFill(o.n); else update(); };
     ul.appendChild(li);
@@ -231,16 +367,36 @@ function setT(t) {
   for (const b of $("tSeg").children) b.classList.toggle("on", +b.dataset.t === t);
 }
 
+function setGame(id) {
+  if (id === state.game) return;
+  state.game = id;
+  const g = G();
+  for (const b of $("gameSeg").children) b.classList.toggle("on", b.dataset.g === id);
+  state.picked = new Set([...state.picked].filter((n) => n <= g.pool));
+  state.extras = new Set(sorted(state.extras).filter((e) => e <= g.extraPool).slice(0, state.reduce ? undefined : g.per));
+  $("price").value = g.price;
+  buildPicker(); buildExtras();
+  update(); suggest();
+}
+
 function randomFill(k) {
-  const all = Array.from({ length: 50 }, (_, i) => i + 1);
+  const all = Array.from({ length: G().pool }, (_, i) => i + 1);
   for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
   state.picked = new Set(all.slice(0, Math.min(30, Math.max(6, k))));
   update();
 }
 
-buildPicker();
+buildPicker(); buildExtras();
 $("tSeg").onclick = (e) => { if (e.target.dataset.t) { setT(+e.target.dataset.t); update(); } };
-$("clear").onclick = () => { state.picked.clear(); update(); };
+$("gameSeg").onclick = (e) => { if (e.target.dataset.g) setGame(e.target.dataset.g); };
+$("xtSeg").onclick = (e) => { if (e.target.dataset.s !== undefined) { state.extraT = +e.target.dataset.s; update(); suggest(); } };
+$("reduce").onchange = (e) => {
+  state.reduce = e.target.checked;
+  // Retour au mode fixe : on garde au plus les compléments d'une grille.
+  if (!state.reduce) state.extras = new Set(sorted(state.extras).slice(0, G().per));
+  update(); suggest();
+};
+$("clear").onclick = () => { state.picked.clear(); state.extras.clear(); update(); };
 $("random").onclick = () => randomFill(+$("howMany").value || 12);
 $("price").onchange = () => { update(); suggest(); };
 $("budget").oninput = suggest;

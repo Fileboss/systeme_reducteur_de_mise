@@ -5,13 +5,15 @@ use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Wrap};
-use srm_core::combinatorics::MAX_NUMBER;
+use srm_core::game::Game;
 
 use super::app::{App, COLS, Field, Focus, Screen};
 use crate::format;
 
 const ACCENT: Color = Color::Cyan;
 const PICKED: Color = Color::Yellow;
+/// Couleur des compléments (étoiles, numéro chance), partout dans la TUI.
+const EXTRA: Color = Color::Magenta;
 
 pub fn draw(frame: &mut Frame, app: &App) {
     match app.screen {
@@ -54,8 +56,8 @@ fn centered(area: Rect, width: u16, height: u16) -> Rect {
 
 fn draw_main(frame: &mut Frame, app: &App) {
     let [top, summary, bottom, footer] = Layout::vertical([
-        Constraint::Length(7),
-        Constraint::Length(8),
+        Constraint::Length(9),
+        Constraint::Length(11),
         Constraint::Min(6),
         Constraint::Length(1),
     ])
@@ -82,40 +84,107 @@ fn focus_block(title: String, focused: bool) -> Block<'static> {
     }
 }
 
+/// Une case de numéro ; `picked` donne la couleur de fond si elle est choisie.
+fn cell(n: u8, picked: Option<Color>, under_cursor: bool) -> Span<'static> {
+    let mut style = Style::new();
+    if let Some(bg) = picked {
+        style = style.fg(Color::Black).bg(bg);
+    }
+    if under_cursor {
+        style = style.add_modifier(Modifier::REVERSED | Modifier::BOLD);
+    }
+    Span::styled(format!("{n:02}"), style)
+}
+
 fn draw_numbers(frame: &mut Frame, app: &App, area: Rect) {
-    let lines: Vec<Line> = (0..MAX_NUMBER / COLS)
+    let game = app.game();
+    let pool = game.pool();
+    let mut lines: Vec<Line> = (0..pool.div_ceil(COLS))
         .map(|row| {
             let spans: Vec<Span> = (1..=COLS)
-                .map(|col| {
-                    let n = row * COLS + col;
-                    let mut style = Style::new();
-                    if app.selected.contains(&n) {
-                        style = style.fg(Color::Black).bg(PICKED);
-                    }
-                    if n == app.cursor && app.focus == Focus::Numbers {
-                        style = style.add_modifier(Modifier::REVERSED | Modifier::BOLD);
-                    }
-                    Span::styled(format!("{n:02}"), style)
+                .map(|col| row * COLS + col)
+                .filter(|&n| n <= pool)
+                .map(|n| {
+                    cell(
+                        n,
+                        app.selected.contains(&n).then_some(PICKED),
+                        n == app.cursor && app.focus == Focus::Numbers,
+                    )
                 })
                 .flat_map(|s| [s, Span::raw(" ")])
                 .collect();
             Line::from(spans)
         })
         .collect();
-    let title = format!(" Numéros ({}) ", app.selected.len());
+    // Ligne des compléments : étoiles ou numéros chance.
+    lines.push(Line::from(""));
+    let mut extras: Vec<Span> = vec![match game {
+        Game::EuroMillions => "★ ".fg(EXTRA),
+        Game::Loto => "chance ".fg(EXTRA),
+    }];
+    extras.extend(
+        (1..=game.extra_pool())
+            .map(|e| {
+                cell(
+                    e,
+                    app.extras.contains(&e).then_some(EXTRA),
+                    e == app.extra_cursor && app.focus == Focus::Extras,
+                )
+            })
+            .flat_map(|s| [s, Span::raw(" ")]),
+    );
+    lines.push(Line::from(extras));
+    let title = format!(
+        " Numéros ({}) · {} ({}) ",
+        app.selected.len(),
+        game.extra_plural(),
+        app.extras.len()
+    );
     frame.render_widget(
-        Paragraph::new(lines).block(focus_block(title, app.focus == Focus::Numbers)),
+        Paragraph::new(lines).block(focus_block(
+            title,
+            matches!(app.focus, Focus::Numbers | Focus::Extras),
+        )),
         area,
     );
 }
 
 fn draw_params(frame: &mut Frame, app: &App, area: Rect) {
     let budget = app.budget.map_or("—".to_string(), format::euros);
+    let game = app.game();
+    let extras_mode = if app.reduce_extras {
+        format!(
+            "réduits, garantie {} {}",
+            app.extra_t,
+            format::plural(game, app.extra_t.into())
+        )
+    } else {
+        format!(
+            "fixes ({} {})",
+            game.extras_per_grid(),
+            format::plural(game, game.extras_per_grid().into())
+        )
+    };
     let lines = vec![
+        Line::from(vec![
+            "Jeu          ".into(),
+            game.name().bold(),
+            "  (j)".dark_gray(),
+        ]),
         Line::from(vec![
             "Garantie     ".into(),
             format!("{} bons numéros", app.t).bold(),
             "  (+/-)".dark_gray(),
+        ]),
+        Line::from(vec![
+            "Compléments  ".into(),
+            extras_mode.bold(),
+            if app.reduce_extras {
+                "  (r, [ ])"
+            } else {
+                "  (r)"
+            }
+            .dark_gray(),
         ]),
         Line::from(vec![
             "Mise visée   ".into(),
@@ -126,11 +195,6 @@ fn draw_params(frame: &mut Frame, app: &App, area: Rect) {
             "Prix grille  ".into(),
             format::euros(app.settings.grid_price).bold(),
             "  (p)".dark_gray(),
-        ]),
-        Line::from(vec![
-            "Taux retour  ".into(),
-            format::percent(app.settings.return_rate).into(),
-            "  (approx.)".dark_gray(),
         ]),
     ];
     frame.render_widget(
@@ -153,21 +217,29 @@ fn draw_summary(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn draw_grids(frame: &mut Frame, app: &App, area: Rect) {
+    // Seuls les tickets visibles sont mis en forme : il peut y en avoir des centaines de milliers.
+    let visible = usize::from(area.height.saturating_sub(2));
     let (title, lines) = match &app.report {
         Ok(r) => (
-            format!(" Grilles ({}) ", r.grids.len()),
-            r.grids
-                .iter()
+            format!(" Tickets ({}) ", r.tickets),
+            r.tickets()
                 .enumerate()
-                .map(|(i, g)| Line::from(format!("{:>4}. {g}", i + 1)))
+                .skip(app.scroll)
+                .take(visible)
+                .map(|(i, (g, e))| {
+                    let mut spans = vec![Span::raw(format!("{:>5}. {g}", i + 1))];
+                    if let Some(e) = e {
+                        spans.push(Span::raw(if r.game == Game::Loto { " + " } else { " " }));
+                        spans.push(format::extras_label(r.game, e).fg(EXTRA).bold());
+                    }
+                    Line::from(spans)
+                })
                 .collect(),
         ),
-        Err(_) => (" Grilles ".to_string(), Vec::new()),
+        Err(_) => (" Tickets ".to_string(), Vec::new()),
     };
     frame.render_widget(
-        Paragraph::new(lines)
-            .scroll((app.scroll as u16, 0))
-            .block(focus_block(title, app.focus == Focus::Grids)),
+        Paragraph::new(lines).block(focus_block(title, app.focus == Focus::Grids)),
         area,
     );
 }
@@ -195,15 +267,7 @@ fn draw_side(frame: &mut Frame, app: &App, area: Rect) {
         Some(_) => app
             .suggestions
             .iter()
-            .map(|o| {
-                Line::from(format!(
-                    "{:>2} numéros, garantie {} : {:>4} grilles, {}",
-                    o.n,
-                    o.t,
-                    o.grids,
-                    format::euros(o.price)
-                ))
-            })
+            .map(|o| Line::from(format::offer(o)))
             .collect(),
     };
     frame.render_widget(
@@ -227,7 +291,7 @@ fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {
         Line::from(msg.clone().fg(Color::Yellow))
     } else {
         Line::from(
-            "←↑↓→ déplacer  espace choisir  tab grilles  x comparer  s enregistrer  c vider  q quitter"
+            "←↑↓→ déplacer  espace choisir  e compléments  j jeu  tab tickets  x comparer  s enregistrer  c vider  q quitter"
                 .dark_gray(),
         )
     };
@@ -260,7 +324,7 @@ mod tests {
         app.refresh();
         let screen = render(&app);
         assert!(screen.contains("Numéros (12)"));
-        assert!(screen.contains("Grilles ("));
+        assert!(screen.contains("Tickets ("));
         assert!(screen.contains("Garantie"));
     }
 
@@ -288,5 +352,39 @@ mod tests {
         }
         app.compute_comparison();
         assert!(render(&app).contains("Système contre hasard"));
+    }
+
+    #[test]
+    fn ticket_extras_are_colored() {
+        let mut app = App {
+            screen: Screen::Main,
+            ..Default::default()
+        };
+        for n in 1..=12 {
+            app.toggle(n);
+        }
+        app.toggle_extra(2);
+        app.toggle_extra(9);
+        let mut terminal = Terminal::new(TestBackend::new(110, 40)).unwrap();
+        terminal.draw(|f| draw(f, &app)).unwrap();
+        let buf = terminal.backend().buffer().clone();
+        let width = usize::from(buf.area.width);
+        let cells = buf.content();
+        // Retrouver « ★ 02 09 » dans la liste des tickets et vérifier la couleur de chaque caractère.
+        let text: Vec<&str> = cells.iter().map(|c| c.symbol()).collect();
+        let star = (0..cells.len())
+            .find(|&i| {
+                text[i] == "★" && text.get(i + 2) == Some(&"0") && text.get(i + 3) == Some(&"2")
+            })
+            .expect("compléments du premier ticket");
+        assert!(
+            star / width > 20,
+            "dans la liste des tickets, pas dans le sélecteur"
+        );
+        for c in &cells[star..star + 7] {
+            assert_eq!(c.fg, EXTRA, "« {} » devrait être en couleur", c.symbol());
+        }
+        // Les numéros de la grille restent sans couleur.
+        assert_ne!(cells[star - 2].fg, EXTRA);
     }
 }
