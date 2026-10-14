@@ -1,0 +1,5 @@
+# srm : couverture de 1..14, garantie 2
+# 3 grilles (glouton : 3), graine 1, vérifiée par force brute
+02,03,06,11,12
+04,05,08,13,14
+07,09,10,11,12
